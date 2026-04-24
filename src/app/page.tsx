@@ -43,6 +43,7 @@ import {
   Cell 
 } from "recharts";
 import { supabase } from "@/lib/supabase";
+import Papa from "papaparse";
 
 // --- Types ---
 
@@ -54,7 +55,10 @@ type TeamRole = "Outreach" | "Content" | "Delivery" | "CEO" | "Outreach Manager"
 interface Lead {
   id: string;
   businessName: string;
-  niche: Niche;
+  websiteUrl: string;
+  city: string;
+  niche: string;
+  email: string;
   platform: Platform;
   service: string;
   status: LeadStatus;
@@ -469,7 +473,7 @@ function DashboardView({ state, setState, setActiveTab }: { state: AppState, set
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Growth Chart */}
-        <div className="lg:col-span-2 bg-[#1e293b]/50 backdrop-blur-sm border border-slate-800 p-8 rounded-3xl min-h-[400px]">
+        <div className="lg:col-span-2 bg-[#1e293b]/50 backdrop-blur-sm border border-slate-800 p-8 rounded-3xl">
           <div className="flex justify-between items-center mb-8">
             <h3 className="text-xl font-bold text-white">Outreach Performance</h3>
             <select className="bg-slate-900 border border-slate-800 text-slate-400 text-xs rounded-lg px-3 py-1 outline-none">
@@ -598,11 +602,13 @@ function DashboardView({ state, setState, setActiveTab }: { state: AppState, set
 function PipelineView({ state, setState, showToast, addActivity, user }: any) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [filter, setFilter] = useState("All");
+  const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
   const [newLead, setNewLead] = useState<Partial<Lead>>({
     status: "Cold",
     platform: "LinkedIn",
     niche: "Other"
   });
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const filteredLeads = state.leads.filter((l: Lead) => filter === "All" || l.status === filter);
 
@@ -611,7 +617,10 @@ function PipelineView({ state, setState, showToast, addActivity, user }: any) {
     const lead = {
       user_id: user.id,
       business_name: newLead.businessName!,
-      niche: newLead.niche as Niche,
+      website_url: newLead.websiteUrl || "",
+      city: newLead.city || "",
+      niche: newLead.niche || "Other",
+      email: newLead.email || "",
       platform: newLead.platform as Platform,
       service: newLead.service || "Web Design",
       status: newLead.status as LeadStatus,
@@ -631,6 +640,40 @@ function PipelineView({ state, setState, showToast, addActivity, user }: any) {
     setNewLead({ status: "Cold", platform: "LinkedIn", niche: "Other" });
   };
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: async (results) => {
+        const rawData = results.data as any[];
+        const leadsToInsert = rawData.map(row => ({
+          user_id: user.id,
+          business_name: row.businessName || row.business_name || "Unknown",
+          website_url: row.websiteUrl || row.website_url || "",
+          city: row.city || "",
+          niche: row.niche || "Other",
+          email: row.email || "",
+          platform: "Cold Email",
+          service: "Web Design",
+          status: "Cold",
+          date_added: new Date().toISOString().split('T')[0]
+        }));
+
+        const { data, error } = await supabase.from('leads').insert(leadsToInsert).select();
+        if (error) {
+          showToast("Error uploading file", "error");
+          return;
+        }
+        setState((prev: AppState) => ({ ...prev, leads: [...(data || []), ...prev.leads] }));
+        addActivity(`${leadsToInsert.length} leads uploaded via CSV`, "create");
+        showToast(`Successfully uploaded ${leadsToInsert.length} leads!`);
+      }
+    });
+  };
+
   const deleteLead = async (id: string) => {
     const lead = state.leads.find((l: Lead) => l.id === id);
     const { error } = await supabase.from('leads').delete().eq('id', id);
@@ -643,19 +686,42 @@ function PipelineView({ state, setState, showToast, addActivity, user }: any) {
     showToast("Lead removed", "error");
   };
 
-  const updateStatus = async (id: string, status: LeadStatus) => {
-    const { error } = await supabase.from('leads').update({ status }).eq('id', id);
+  const bulkDelete = async () => {
+    if (!selectedLeads.length) return;
+    const { error } = await supabase.from('leads').delete().in('id', selectedLeads);
     if (error) {
-      showToast("Error updating status", "error");
+      showToast("Error in bulk delete", "error");
+      return;
+    }
+    setState((prev: AppState) => ({ ...prev, leads: prev.leads.filter(l => !selectedLeads.includes(l.id)) }));
+    addActivity(`${selectedLeads.length} leads deleted via bulk action`, "delete");
+    showToast(`Deleted ${selectedLeads.length} leads`, "error");
+    setSelectedLeads([]);
+  };
+
+  const bulkUpdateStatus = async (status: LeadStatus) => {
+    if (!selectedLeads.length) return;
+    const { error } = await supabase.from('leads').update({ status }).in('id', selectedLeads);
+    if (error) {
+      showToast("Error in bulk update", "error");
       return;
     }
     setState((prev: AppState) => ({
       ...prev,
-      leads: prev.leads.map(l => l.id === id ? { ...l, status } : l)
+      leads: prev.leads.map(l => selectedLeads.includes(l.id) ? { ...l, status } : l)
     }));
-    const lead = state.leads.find((l: Lead) => l.id === id);
-    addActivity(`Status updated for ${lead?.businessName} to ${status}`);
-    showToast("Status updated");
+    addActivity(`Bulk status update for ${selectedLeads.length} leads to ${status}`);
+    showToast(`Updated ${selectedLeads.length} leads to ${status}`);
+    setSelectedLeads([]);
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedLeads(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedLeads.length === filteredLeads.length) setSelectedLeads([]);
+    else setSelectedLeads(filteredLeads.map((l: Lead) => l.id));
   };
 
   return (
@@ -665,7 +731,7 @@ function PipelineView({ state, setState, showToast, addActivity, user }: any) {
           {["All", "Cold", "Replied", "Call Booked", "Won"].map((f) => (
             <button
               key={f}
-              onClick={() => setFilter(f)}
+              onClick={() => { setFilter(f); setSelectedLeads([]); }}
               className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
                 filter === f 
                   ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20" 
@@ -676,64 +742,121 @@ function PipelineView({ state, setState, showToast, addActivity, user }: any) {
             </button>
           ))}
         </div>
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-2.5 rounded-xl flex items-center gap-2 font-semibold shadow-lg shadow-indigo-500/20 transition-all active:scale-95"
-        >
-          <Plus size={20} /> Add New Lead
-        </button>
+        <div className="flex items-center gap-3">
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleFileUpload} 
+            accept=".csv" 
+            className="hidden" 
+          />
+          <button 
+            onClick={() => fileInputRef.current?.click()}
+            className="bg-slate-900 border border-slate-800 text-slate-300 hover:bg-slate-800 px-6 py-2.5 rounded-xl flex items-center gap-2 font-semibold transition-all"
+          >
+            <ExternalLink size={18} /> Upload CSV
+          </button>
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-2.5 rounded-xl flex items-center gap-2 font-semibold shadow-lg shadow-indigo-500/20 transition-all active:scale-95"
+          >
+            <Plus size={20} /> Add Lead
+          </button>
+        </div>
       </div>
+
+      {/* Bulk Actions Bar */}
+      {selectedLeads.length > 0 && (
+        <div className="bg-indigo-500/10 border border-indigo-500/20 p-4 rounded-2xl flex items-center justify-between animate-in slide-in-from-top-2">
+          <div className="flex items-center gap-4">
+            <span className="text-indigo-400 font-bold text-sm">{selectedLeads.length} leads selected</span>
+            <div className="h-4 w-px bg-indigo-500/20" />
+            <div className="flex gap-2">
+              {["Cold", "Replied", "Call Booked", "Won"].map((s) => (
+                <button 
+                  key={s}
+                  onClick={() => bulkUpdateStatus(s as LeadStatus)}
+                  className="px-3 py-1 bg-slate-900 border border-slate-800 text-slate-400 text-[10px] font-bold rounded-lg hover:text-white transition-colors"
+                >
+                  SET {s.toUpperCase()}
+                </button>
+              ))}
+            </div>
+          </div>
+          <button 
+            onClick={bulkDelete}
+            className="flex items-center gap-2 text-rose-500 hover:text-rose-400 font-bold text-sm px-4"
+          >
+            <Trash2 size={16} /> Delete Selected
+          </button>
+        </div>
+      )}
 
       <div className="bg-[#1e293b]/50 backdrop-blur-sm border border-slate-800 rounded-3xl overflow-hidden shadow-2xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-slate-800 bg-slate-900/50">
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Business Name</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Source</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Niche</th>
+                <th className="px-6 py-4 w-10">
+                  <input 
+                    type="checkbox" 
+                    checked={selectedLeads.length === filteredLeads.length && filteredLeads.length > 0}
+                    onChange={toggleSelectAll}
+                    className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-indigo-500 focus:ring-indigo-500/50"
+                  />
+                </th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Business & Contact</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Location & Niche</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Follow Up</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800">
+            <tbody className="divide-y divide-slate-800/50">
               {filteredLeads.map((lead: Lead) => (
-                <tr key={lead.id} className="hover:bg-slate-800/30 transition-colors group">
+                <tr key={lead.id} className={`hover:bg-slate-800/30 transition-colors group ${selectedLeads.includes(lead.id) ? 'bg-indigo-500/5' : ''}`}>
                   <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400 font-bold border border-indigo-500/20">
-                        {lead.businessName?.[0] || 'L'}
+                    <input 
+                      type="checkbox" 
+                      checked={selectedLeads.includes(lead.id)}
+                      onChange={() => toggleSelect(lead.id)}
+                      className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-indigo-500 focus:ring-indigo-500/50"
+                    />
+                  </td>
+                  <td className="px-6 py-4">
+                    <div>
+                      <div className="font-bold text-slate-100 flex items-center gap-2">
+                        {lead.businessName}
+                        {lead.websiteUrl && (
+                          <a href={lead.websiteUrl} target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-indigo-400">
+                            <ExternalLink size={12} />
+                          </a>
+                        )}
                       </div>
-                      <div>
-                        <p className="text-sm font-semibold text-white">{lead.businessName}</p>
-                        <p className="text-[10px] text-slate-500">{lead.service}</p>
-                      </div>
+                      <div className="text-xs text-slate-500 mt-1">{lead.email || "No email provided"}</div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-sm text-slate-400">{lead.platform}</td>
-                  <td className="px-6 py-4 text-sm text-slate-400">{lead.niche}</td>
                   <td className="px-6 py-4">
-                    <select 
-                      value={lead.status}
-                      onChange={(e) => updateStatus(lead.id, e.target.value as LeadStatus)}
-                      className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-full bg-slate-900 border border-slate-700 outline-none cursor-pointer ${
-                        lead.status === "Won" ? "text-emerald-400 border-emerald-500/30" :
-                        lead.status === "Call Booked" ? "text-blue-400 border-blue-500/30" :
-                        lead.status === "Replied" ? "text-indigo-400 border-indigo-500/30" :
-                        "text-slate-400 border-slate-700"
-                      }`}
-                    >
-                      {["Cold", "Replied", "Call Booked", "Proposal Sent", "Won", "Lost"].map(s => (
-                        <option key={s} value={s}>{s}</option>
-                      ))}
-                    </select>
+                    <div className="text-sm text-slate-300">{lead.city || "Remote"}</div>
+                    <div className="text-[10px] text-slate-500 mt-0.5 font-bold uppercase tracking-wider">{lead.niche}</div>
                   </td>
-                  <td className="px-6 py-4 text-sm text-slate-400">{lead.followUpDate || "-"}</td>
+                  <td className="px-6 py-4">
+                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-sm ${
+                      lead.status === "Won" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
+                      lead.status === "Call Booked" ? "bg-amber-500/10 text-amber-400 border-amber-500/20" :
+                      lead.status === "Replied" ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20" :
+                      "bg-slate-900 text-slate-500 border-slate-800"
+                    }`}>
+                      {lead.status}
+                    </span>
+                  </td>
                   <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button className="p-1.5 text-slate-400 hover:text-indigo-400 transition-colors"><Edit2 size={16} /></button>
-                      <button onClick={() => deleteLead(lead.id)} className="p-1.5 text-slate-400 hover:text-rose-400 transition-colors"><Trash2 size={16} /></button>
+                    <div className="flex justify-end gap-2">
+                       <button 
+                        onClick={() => deleteLead(lead.id)}
+                        className="p-2 text-slate-600 hover:text-rose-500 transition-colors"
+                      >
+                        <Trash2 size={18} />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -749,49 +872,18 @@ function PipelineView({ state, setState, showToast, addActivity, user }: any) {
         </div>
       </div>
 
-      {/* Modal */}
+      {/* Manual Add Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-[#0f172a] border border-slate-800 w-full max-w-md rounded-3xl p-8 shadow-2xl animate-in zoom-in-95 duration-200">
-            <h3 className="text-2xl font-display font-bold text-white mb-6">Add New Lead</h3>
-            <div className="space-y-4">
-              <div>
+          <div className="bg-[#0f172a] border border-slate-800 w-full max-w-2xl rounded-3xl p-8 shadow-2xl animate-in zoom-in-95 duration-200">
+            <h3 className="text-2xl font-display font-bold text-white mb-6">Add New Prospect</h3>
+            <div className="grid grid-cols-2 gap-6">
+              <div className="col-span-2 sm:col-span-1">
                 <label className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">Business Name</label>
                 <input 
-                  autoFocus
                   type="text" 
                   value={newLead.businessName || ""}
                   onChange={(e) => setNewLead({...newLead, businessName: e.target.value})}
-                  className="w-full bg-slate-900 border border-slate-800 text-white p-3 rounded-xl focus:ring-2 focus:ring-indigo-500/50 outline-none"
-                  placeholder="e.g. Acme Corp"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">Niche</label>
-                  <select 
-                    value={newLead.niche}
-                    onChange={(e) => setNewLead({...newLead, niche: e.target.value as Niche})}
-                    className="w-full bg-slate-900 border border-slate-800 text-white p-3 rounded-xl outline-none"
-                  >
-                    {["Restaurant", "Salon", "Estate Agent", "Hotel", "E-commerce", "Other"].map(n => <option key={n}>{n}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">Platform</label>
-                  <select 
-                    value={newLead.platform}
-                    onChange={(e) => setNewLead({...newLead, platform: e.target.value as Platform})}
-                    className="w-full bg-slate-900 border border-slate-800 text-white p-3 rounded-xl outline-none"
-                  >
-                    {["LinkedIn", "Upwork", "Fiverr", "Cold Email", "Referral", "Other"].map(p => <option key={p}>{p}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">Service Interest</label>
-                <input 
-                  type="text" 
                   value={newLead.service || ""}
                   onChange={(e) => setNewLead({...newLead, service: e.target.value})}
                   className="w-full bg-slate-900 border border-slate-800 text-white p-3 rounded-xl outline-none"
