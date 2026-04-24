@@ -48,7 +48,7 @@ import Papa from "papaparse";
 
 // --- Types ---
 
-type LeadStatus = "Cold" | "Replied" | "Call Booked" | "Proposal Sent" | "Won" | "Lost";
+type LeadStatus = "New" | "Cold" | "Sent Email" | "Replied" | "Call Booked" | "Proposal Sent" | "Won" | "Lost";
 type Platform = "LinkedIn" | "Upwork" | "Fiverr" | "Cold Email" | "Referral" | "Other";
 type Niche = "Restaurant" | "Salon" | "Estate Agent" | "Hotel" | "E-commerce" | "Other";
 type TeamRole = "Outreach" | "Content" | "Delivery" | "CEO" | "Outreach Manager";
@@ -749,7 +749,7 @@ function PipelineView({ state, setState, showToast, addActivity, user }: any) {
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
         <div className="flex items-center gap-3">
-          {["All", "Cold", "Replied", "Call Booked", "Won"].map((f) => (
+          {["All", "New", "Cold", "Sent Email", "Replied", "Call Booked", "Won"].map((f) => (
             <button
               key={f}
               onClick={() => { setFilter(f); setSelectedLeads([]); }}
@@ -793,7 +793,7 @@ function PipelineView({ state, setState, showToast, addActivity, user }: any) {
             <span className="text-indigo-400 font-bold text-sm">{selectedLeads.length} leads selected</span>
             <div className="h-4 w-px bg-indigo-500/20" />
             <div className="flex gap-2">
-              {["Cold", "Replied", "Call Booked", "Won"].map((s) => (
+              {["New", "Cold", "Sent Email", "Replied", "Call Booked", "Won"].map((s) => (
                 <button 
                   key={s}
                   onClick={() => bulkUpdateStatus(s as LeadStatus)}
@@ -864,7 +864,9 @@ function PipelineView({ state, setState, showToast, addActivity, user }: any) {
                     <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-sm ${
                       lead.status === "Won" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
                       lead.status === "Call Booked" ? "bg-amber-500/10 text-amber-400 border-amber-500/20" :
-                      lead.status === "Replied" ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20" :
+                      lead.status === "Sent Email" ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20" :
+                      lead.status === "Replied" ? "bg-blue-500/10 text-blue-400 border-blue-500/20" :
+                      lead.status === "New" ? "bg-violet-500/10 text-violet-400 border-violet-500/20" :
                       "bg-slate-900 text-slate-500 border-slate-800"
                     }`}>
                       {lead.status}
