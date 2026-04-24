@@ -28,7 +28,8 @@ import {
   Briefcase,
   PieChart as PieChartIcon,
   ShieldCheck,
-  Globe
+  Globe,
+  Upload
 } from "lucide-react";
 import { 
   ResponsiveContainer, 
@@ -752,9 +753,9 @@ function PipelineView({ state, setState, showToast, addActivity, user }: any) {
           />
           <button 
             onClick={() => fileInputRef.current?.click()}
-            className="bg-slate-900 border border-slate-800 text-slate-300 hover:bg-slate-800 px-6 py-2.5 rounded-xl flex items-center gap-2 font-semibold transition-all"
+            className="bg-slate-900 border border-slate-800 text-slate-300 hover:bg-slate-800 px-6 py-2.5 rounded-xl flex items-center gap-2 font-semibold transition-all border-dashed hover:border-indigo-500/50"
           >
-            <ExternalLink size={18} /> Upload CSV
+            <Upload size={18} className="text-indigo-400" /> Upload CSV
           </button>
           <button 
             onClick={() => setIsModalOpen(true)}
@@ -884,10 +885,8 @@ function PipelineView({ state, setState, showToast, addActivity, user }: any) {
                   type="text" 
                   value={newLead.businessName || ""}
                   onChange={(e) => setNewLead({...newLead, businessName: e.target.value})}
-                  value={newLead.service || ""}
-                  onChange={(e) => setNewLead({...newLead, service: e.target.value})}
-                  className="w-full bg-slate-900 border border-slate-800 text-white p-3 rounded-xl outline-none"
-                  placeholder="e.g. AI Chatbot"
+                  className="w-full bg-slate-900 border border-slate-800 text-white p-3 rounded-xl outline-none focus:border-indigo-500 transition-colors"
+                  placeholder="Company Ltd"
                 />
               </div>
               <div className="flex gap-4 mt-8">
