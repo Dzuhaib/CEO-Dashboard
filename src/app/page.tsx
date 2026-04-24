@@ -469,7 +469,7 @@ function DashboardView({ state, setState, setActiveTab }: { state: AppState, set
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Growth Chart */}
-        <div className="lg:col-span-2 bg-[#1e293b]/50 backdrop-blur-sm border border-slate-800 p-8 rounded-3xl">
+        <div className="lg:col-span-2 bg-[#1e293b]/50 backdrop-blur-sm border border-slate-800 p-8 rounded-3xl min-h-[400px]">
           <div className="flex justify-between items-center mb-8">
             <h3 className="text-xl font-bold text-white">Outreach Performance</h3>
             <select className="bg-slate-900 border border-slate-800 text-slate-400 text-xs rounded-lg px-3 py-1 outline-none">
