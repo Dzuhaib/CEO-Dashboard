@@ -108,6 +108,11 @@ interface AppState {
   activity: ActivityLog[];
 }
 
+// Helper for Pakistani Timezone (UTC+5)
+const getPKTDate = () => {
+  return new Date(new Date().getTime() + 5 * 60 * 60 * 1000).toISOString().split('T')[0];
+};
+
 // --- Components ---
 
 const Toast = ({ message, type, onClear }: { message: string, type: 'success' | 'error', onClear: () => void }) => {
@@ -179,11 +184,6 @@ export default function AgencyDashboard() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [toast, setToast] = useState<{message: string, type: 'success' | 'error'} | null>(null);
-
-  // Helper for Pakistani Timezone (UTC+5)
-  const getPKTDate = () => {
-    return new Date(new Date().getTime() + 5 * 60 * 60 * 1000).toISOString().split('T')[0];
-  };
 
   const [state, setState] = useState<AppState>({
     leads: [],
