@@ -129,7 +129,7 @@ function AuthView() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.origin
+        redirectTo: `${window.location.origin}/`
       }
     });
     if (error) console.error("Login error:", error.message);
@@ -186,18 +186,27 @@ export default function AgencyDashboard() {
 
   // Auth Listener
   useEffect(() => {
+    console.log("Initializing Auth Listener...");
+    
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log("Initial Session Check:", session ? "Session Found" : "No Session");
       setUser(session?.user ?? null);
       if (session?.user) fetchData(session.user.id);
       else setLoading(false);
+    }).catch(err => {
+      console.error("GetSession Error:", err);
+      setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("Auth State Changed:", event, session ? "Session Found" : "No Session");
       setUser(session?.user ?? null);
       if (session?.user) fetchData(session.user.id);
       else {
         setState(prev => ({ ...prev, leads: [], tasks: [], content: [], activity: [] }));
-        setLoading(false);
+        if (event === 'SIGNED_OUT' || event === 'INITIAL_SESSION') {
+          setLoading(false);
+        }
       }
     });
 
