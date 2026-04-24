@@ -187,6 +187,7 @@ export default function AgencyDashboard() {
   // Auth Listener
   useEffect(() => {
     console.log("Initializing Auth Listener...");
+    console.log("Current URL:", window.location.href);
     console.log("Supabase URL Configured:", !!process.env.NEXT_PUBLIC_SUPABASE_URL);
     console.log("Supabase Key Configured:", !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
     
