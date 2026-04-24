@@ -447,10 +447,21 @@ function DashboardView({ state, setState, setActiveTab }: { state: AppState, set
 
   const pieData = useMemo(() => {
     const counts: Record<string, number> = {};
+    
+    // Count from leads
     state.leads.forEach(l => {
       const p = l.platform || "Other";
       counts[p] = (counts[p] || 0) + 1;
     });
+
+    // Add weight for completed outreach tasks
+    const today = getPKTDate();
+    const todayTasks = state.tasks.filter(t => t.date === today && t.done);
+    todayTasks.forEach(t => {
+      if (t.title.toLowerCase().includes("linkedin")) counts["LinkedIn"] = (counts["LinkedIn"] || 0) + 15;
+      if (t.title.toLowerCase().includes("email")) counts["Cold Email"] = (counts["Cold Email"] || 0) + 15;
+    });
+    
     const data = Object.entries(counts).map(([name, value]) => ({ name, value }));
     return data.length > 0 ? data : [
       { name: "LinkedIn", value: 0 },
@@ -458,17 +469,30 @@ function DashboardView({ state, setState, setActiveTab }: { state: AppState, set
       { name: "Cold Email", value: 0 },
       { name: "Other", value: 0 },
     ];
-  }, [state.leads]);
+  }, [state.leads, state.tasks]);
 
-  const chartData = [
-    { name: "Mon", sent: 8, replied: 1 },
-    { name: "Tue", sent: 15, replied: 2 },
-    { name: "Wed", sent: 12, replied: 4 },
-    { name: "Thu", sent: 18, replied: 3 },
-    { name: "Fri", sent: 10, replied: 5 },
-    { name: "Sat", sent: 5, replied: 1 },
-    { name: "Sun", sent: 3, replied: 0 },
-  ];
+  const chartData = useMemo(() => {
+    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (6 - i));
+      return {
+        date: d.toISOString().split('T')[0],
+        day: days[d.getDay()],
+        sent: 0
+      };
+    });
+
+    state.leads.forEach(l => {
+      if (l.lastOutreachAt) {
+        const date = l.lastOutreachAt.split('T')[0];
+        const dayMatch = last7Days.find(d => d.date === date);
+        if (dayMatch) dayMatch.sent += (l.emailsSent || 1);
+      }
+    });
+
+    return last7Days.map(d => ({ name: d.day, sent: d.sent }));
+  }, [state.leads]);
 
   const COLORS = ["#6366f1", "#8b5cf6", "#ec4899", "#f43f5e", "#f59e0b", "#10b981"];
 
