@@ -49,7 +49,7 @@ import { supabase } from "@/lib/supabase";
 type LeadStatus = "Cold" | "Replied" | "Call Booked" | "Proposal Sent" | "Won" | "Lost";
 type Platform = "LinkedIn" | "Upwork" | "Fiverr" | "Cold Email" | "Referral" | "Other";
 type Niche = "Restaurant" | "Salon" | "Estate Agent" | "Hotel" | "E-commerce" | "Other";
-type TeamRole = "Outreach" | "Content" | "Delivery" | "CEO";
+type TeamRole = "Outreach" | "Content" | "Delivery" | "CEO" | "Outreach Manager";
 
 interface Lead {
   id: string;
