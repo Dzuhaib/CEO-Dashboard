@@ -379,7 +379,7 @@ function DashboardView({ state, setState, setActiveTab }: { state: AppState, set
     const followUpsToday = state.leads.filter(l => l.followUpDate === today);
     
     return [
-      { label: "Outreach Sent Today", value: "12", icon: Mail, color: "text-indigo-400", bg: "bg-indigo-400/10" },
+      { label: "Outreach Sent Today", value: todayTasks.filter(t => t.done && t.assignee === "Outreach").length > 0 ? "45" : "0", icon: Mail, color: "text-indigo-400", bg: "bg-indigo-400/10" },
       { label: "Tasks Completed", value: `${todayTasks.filter(t => t.done).length}/${todayTasks.length}`, icon: CheckSquare, color: "text-emerald-400", bg: "bg-emerald-400/10" },
       { label: "Follow-ups Due", value: followUpsToday.length.toString(), icon: Clock, color: "text-amber-400", bg: "bg-amber-400/10" },
       { label: "Active Pipeline", value: state.leads.filter(l => l.status !== "Won" && l.status !== "Lost").length.toString(), icon: Briefcase, color: "text-blue-400", bg: "bg-blue-400/10" },
@@ -778,8 +778,14 @@ function TasksView({ state, setState, showToast, addActivity, user }: any) {
   useEffect(() => {
     if (!user) return;
     const checkTasks = async () => {
-      const todayTasks = state.tasks.filter((t: Task) => t.date === today);
-      if (todayTasks.length === 0) {
+      // Check database directly instead of local state to avoid race conditions
+      const { data: dbTasks } = await supabase
+        .from('tasks')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('date', today);
+
+      if (dbTasks && dbTasks.length === 0) {
         const defaults = [
           { user_id: user.id, title: "Send 15 cold emails", assignee: "Outreach", done: false, date: today },
           { user_id: user.id, title: "Send 15 cold DMs for LinkedIn", assignee: "Outreach", done: false, date: today },
