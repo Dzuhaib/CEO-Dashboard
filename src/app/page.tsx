@@ -169,20 +169,25 @@ function AuthView() {
 
 export default function AgencyDashboard() {
   const [activeTab, setActiveTab] = useState("Dashboard");
+  const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [toast, setToast] = useState<{message: string, type: 'success' | 'error'} | null>(null);
+
+  // Helper for Pakistani Timezone (UTC+5)
+  const getPKTDate = () => {
+    return new Date(new Date().getTime() + 5 * 60 * 60 * 1000).toISOString().split('T')[0];
+  };
+
   const [state, setState] = useState<AppState>({
     leads: [],
     tasks: [],
     content: [],
     team: [
-      { id: "m1", name: "Alex", role: "Outreach", focus: "Cold email & LinkedIn DM" },
-      { id: "m2", name: "Sarah", role: "Content", focus: "Daily social posting" },
-      { id: "m3", name: "Mike", role: "Delivery", focus: "Building AI Chatbots" }
+      { id: "m1", name: "Zuhaib Ahmed", role: "CEO", focus: "Strategy & High-ticket Sales" },
+      { id: "m2", name: "Hadi Seelro", role: "Outreach Manager", focus: "Cold Email & LinkedIn Automation" }
     ],
     activity: []
   });
-  const [loading, setLoading] = useState(true);
-  const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
 
   // Auth Listener
   useEffect(() => {
@@ -373,7 +378,7 @@ export default function AgencyDashboard() {
 
 function DashboardView({ state, setState, setActiveTab }: { state: AppState, setState: any, setActiveTab: any }) {
   const stats = useMemo(() => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date(new Date().getTime() + 5 * 60 * 60 * 1000).toISOString().split('T')[0];
     const todayTasks = state.tasks.filter(t => t.date === today);
     const wonLeads = state.leads.filter(l => l.status === "Won");
     const followUpsToday = state.leads.filter(l => l.followUpDate === today);
@@ -773,7 +778,8 @@ function PipelineView({ state, setState, showToast, addActivity, user }: any) {
 }
 
 function TasksView({ state, setState, showToast, addActivity, user }: any) {
-  const today = new Date().toISOString().split('T')[0];
+  // Use Pakistani Timezone (UTC+5)
+  const today = new Date(new Date().getTime() + 5 * 60 * 60 * 1000).toISOString().split('T')[0];
   
   useEffect(() => {
     if (!user) return;
