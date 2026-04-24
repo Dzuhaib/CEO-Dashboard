@@ -263,6 +263,7 @@ export default function AgencyDashboard() {
   const checkTasks = async (userId: string, currentTasks: Task[]) => {
     const today = getPKTDate();
     const todayTasks = currentTasks.filter(t => t.date === today);
+    console.log(`Checking tasks for ${today}. Found: ${todayTasks.length}`);
     
     if (todayTasks.length === 0) {
       const defaults = [
@@ -273,9 +274,13 @@ export default function AgencyDashboard() {
         { user_id: userId, title: "Review pipeline", assignee: "CEO" as TeamRole, done: false, date: today }
       ];
       const { data, error } = await supabase.from('tasks').insert(defaults).select();
-      if (!error && data) {
+      if (error) {
+        console.error("Task Insert Error:", error);
+        showToast("Error generating daily tasks: " + error.message, "error");
+      } else if (data) {
         setState(prev => ({ ...prev, tasks: [...data, ...prev.tasks] }));
         addActivity("Daily outreach tasks generated", "system");
+        showToast("Daily tasks generated!", "success");
       }
     }
   };
