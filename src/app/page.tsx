@@ -811,7 +811,7 @@ function TasksView({ state, setState, showToast, addActivity, user }: any) {
   };
 
   const currentTasks = state.tasks.filter((t: Task) => t.date === today);
-  const progress = currentTasks.length ? (currentTasks.filter(t => t.done).length / currentTasks.length) * 100 : 0;
+  const progress = currentTasks.length ? (currentTasks.filter((t: Task) => t.done).length / currentTasks.length) * 100 : 0;
 
   return (
     <div className="max-w-3xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -819,7 +819,7 @@ function TasksView({ state, setState, showToast, addActivity, user }: any) {
         <div className="flex justify-between items-end">
           <div>
              <h3 className="text-xl font-bold text-white">Daily Progress</h3>
-             <p className="text-slate-500 text-sm">{currentTasks.filter(t => t.done).length} of {currentTasks.length} tasks completed</p>
+             <p className="text-slate-500 text-sm">{currentTasks.filter((t: Task) => t.done).length} of {currentTasks.length} tasks completed</p>
           </div>
           <span className="text-4xl font-display font-black text-indigo-500">{Math.round(progress)}%</span>
         </div>
