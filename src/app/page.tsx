@@ -61,6 +61,7 @@ interface Lead {
   niche: string;
   email: string;
   emailsSent: number;
+  lastOutreachAt: string | null;
   platform: Platform;
   service: string;
   status: LeadStatus;
@@ -235,7 +236,8 @@ export default function AgencyDashboard() {
           ...l,
           businessName: l.business_name,
           websiteUrl: l.website_url,
-          emailsSent: l.emails_sent || 0
+          emailsSent: l.emails_sent || 0,
+          lastOutreachAt: l.last_outreach_at
         })),
         tasks: tasksRes.data || [],
         content: contentRes.data || [],
@@ -424,9 +426,18 @@ function DashboardView({ state, setState, setActiveTab }: { state: AppState, set
     const wonLeads = state.leads.filter(l => l.status === "Won");
     const followUpsToday = state.leads.filter(l => l.followUpDate === today);
     
+    const sentTodayLeads = state.leads.filter(l => {
+      if (!l.lastOutreachAt) return false;
+      const d = new Date(l.lastOutreachAt);
+      const pkt = new Date(d.getTime() + 5 * 60 * 60 * 1000).toISOString().split('T')[0];
+      return pkt === today;
+    });
+
+    const totalSent = sentTodayLeads.length;
+    
     return [
-      { label: "Outreach Sent Today", value: todayTasks.filter(t => t.done && t.assignee === "Outreach").length > 0 ? "45" : "0", icon: Mail, color: "text-indigo-400", bg: "bg-indigo-400/10" },
-      { label: "Tasks Completed", value: `${todayTasks.filter(t => t.done).length}/${todayTasks.length}`, icon: CheckSquare, color: "text-emerald-400", bg: "bg-emerald-400/10" },
+      { label: "Outreach Sent Today", value: totalSent.toString(), icon: Mail, color: "text-indigo-400", bg: "bg-indigo-400/10" },
+      { label: "Tasks Completed", value: `${todayTasks.filter(t => t.done).length}/${todayTasks.length || 0}`, icon: CheckSquare, color: "text-emerald-400", bg: "bg-emerald-400/10" },
       { label: "Follow-ups Due", value: followUpsToday.length.toString(), icon: Clock, color: "text-amber-400", bg: "bg-amber-400/10" },
       { label: "Active Pipeline", value: state.leads.filter(l => l.status !== "Won" && l.status !== "Lost").length.toString(), icon: Briefcase, color: "text-blue-400", bg: "bg-blue-400/10" },
       { label: "Total Won", value: wonLeads.length.toString(), icon: TrendingUp, color: "text-violet-400", bg: "bg-violet-400/10" },
@@ -709,14 +720,22 @@ function PipelineView({ state, setState, showToast, addActivity, user }: any) {
 
   const bulkUpdateStatus = async (status: LeadStatus) => {
     if (!selectedLeads.length) return;
-    const { error } = await supabase.from('leads').update({ status }).in('id', selectedLeads);
+    const now = new Date().toISOString();
+    const updatePayload: any = { status };
+    if (status === "Sent Email") updatePayload.last_outreach_at = now;
+
+    const { error } = await supabase.from('leads').update(updatePayload).in('id', selectedLeads);
     if (error) {
       showToast("Error in bulk update", "error");
       return;
     }
     setState((prev: AppState) => ({
       ...prev,
-      leads: prev.leads.map(l => selectedLeads.includes(l.id) ? { ...l, status } : l)
+      leads: prev.leads.map(l => selectedLeads.includes(l.id) ? { 
+        ...l, 
+        status, 
+        lastOutreachAt: status === "Sent Email" ? now : l.lastOutreachAt 
+      } : l)
     }));
     addActivity(`Bulk status update for ${selectedLeads.length} leads to ${status}`);
     showToast(`Updated ${selectedLeads.length} leads to ${status}`);
@@ -727,11 +746,16 @@ function PipelineView({ state, setState, showToast, addActivity, user }: any) {
     const lead = state.leads.find((l: Lead) => l.id === id);
     if (!lead) return;
     const newVal = (lead.emailsSent || 0) + 1;
-    const { error } = await supabase.from('leads').update({ emails_sent: newVal }).eq('id', id);
+    const now = new Date().toISOString();
+    const { error } = await supabase.from('leads').update({ 
+      emails_sent: newVal, 
+      last_outreach_at: now,
+      status: "Sent Email" 
+    }).eq('id', id);
     if (error) return;
     setState((prev: AppState) => ({
       ...prev,
-      leads: prev.leads.map(l => l.id === id ? { ...l, emailsSent: newVal } : l)
+      leads: prev.leads.map(l => l.id === id ? { ...l, emailsSent: newVal, lastOutreachAt: now, status: "Sent Email" } : l)
     }));
     addActivity(`Email tracked for ${lead.businessName} (Total: ${newVal})`);
   };
@@ -748,22 +772,19 @@ function PipelineView({ state, setState, showToast, addActivity, user }: any) {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-        <div className="flex items-center gap-3">
-          {["All", "New", "Cold", "Sent Email", "Replied", "Call Booked", "Won"].map((f) => (
-            <button
-              key={f}
-              onClick={() => { setFilter(f); setSelectedLeads([]); }}
-              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                filter === f 
-                  ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20" 
-                  : "bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200"
-              }`}
-            >
-              {f}
-            </button>
-          ))}
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <select 
+            value={filter}
+            onChange={(e) => { setFilter(e.target.value); setSelectedLeads([]); }}
+            className="bg-slate-900 border border-slate-800 text-slate-200 px-4 py-2.5 rounded-xl text-sm font-medium outline-none focus:border-indigo-500 w-full sm:w-48 appearance-none"
+            style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%2364748b\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'/%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1em' }}
+          >
+            {["All", "New", "Sent Email", "Replied", "Call Booked", "Won"].map((f) => (
+              <option key={f} value={f}>{f === "All" ? "Filter by Status" : f}</option>
+            ))}
+          </select>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 w-full sm:w-auto">
           <input 
             type="file" 
             ref={fileInputRef} 
