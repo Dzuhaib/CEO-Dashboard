@@ -60,6 +60,7 @@ interface Lead {
   city: string;
   niche: string;
   email: string;
+  emailsSent: number;
   platform: Platform;
   service: string;
   status: LeadStatus;
@@ -230,7 +231,12 @@ export default function AgencyDashboard() {
 
       setState(prev => ({
         ...prev,
-        leads: leadsRes.data || [],
+        leads: (leadsRes.data || []).map((l: any) => ({
+          ...l,
+          businessName: l.business_name,
+          websiteUrl: l.website_url,
+          emailsSent: l.emails_sent || 0
+        })),
         tasks: tasksRes.data || [],
         content: contentRes.data || [],
         activity: activityRes.data || []
@@ -431,7 +437,8 @@ function DashboardView({ state, setState, setActiveTab }: { state: AppState, set
   const pieData = useMemo(() => {
     const counts: Record<string, number> = {};
     state.leads.forEach(l => {
-      counts[l.platform] = (counts[l.platform] || 0) + 1;
+      const p = l.platform || "Other";
+      counts[p] = (counts[p] || 0) + 1;
     });
     const data = Object.entries(counts).map(([name, value]) => ({ name, value }));
     return data.length > 0 ? data : [
@@ -580,7 +587,7 @@ function DashboardView({ state, setState, setActiveTab }: { state: AppState, set
             {state.leads.slice(0, 4).map((lead) => (
               <div key={lead.id} className="flex items-center gap-4 p-4 rounded-2xl bg-slate-900/30 border border-slate-800 hover:border-slate-700 transition-colors">
                 <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-indigo-400 font-bold border border-slate-700">
-                  {lead.businessName[0]}
+                  {lead.businessName ? lead.businessName[0] : "L"}
                 </div>
                 <div className="flex-1">
                   <div className="flex justify-between">
@@ -714,6 +721,19 @@ function PipelineView({ state, setState, showToast, addActivity, user }: any) {
     addActivity(`Bulk status update for ${selectedLeads.length} leads to ${status}`);
     showToast(`Updated ${selectedLeads.length} leads to ${status}`);
     setSelectedLeads([]);
+  };
+
+  const updateEmailsSent = async (id: string) => {
+    const lead = state.leads.find((l: Lead) => l.id === id);
+    if (!lead) return;
+    const newVal = (lead.emailsSent || 0) + 1;
+    const { error } = await supabase.from('leads').update({ emails_sent: newVal }).eq('id', id);
+    if (error) return;
+    setState((prev: AppState) => ({
+      ...prev,
+      leads: prev.leads.map(l => l.id === id ? { ...l, emailsSent: newVal } : l)
+    }));
+    addActivity(`Email tracked for ${lead.businessName} (Total: ${newVal})`);
   };
 
   const toggleSelect = (id: string) => {
@@ -852,6 +872,12 @@ function PipelineView({ state, setState, showToast, addActivity, user }: any) {
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex justify-end gap-2">
+                       <button 
+                        onClick={() => updateEmailsSent(lead.id)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all text-[10px] font-bold border border-indigo-500/20"
+                      >
+                        <Mail size={14} /> {lead.emailsSent || 0} SENT
+                      </button>
                        <button 
                         onClick={() => deleteLead(lead.id)}
                         className="p-2 text-slate-600 hover:text-rose-500 transition-colors"
@@ -1116,7 +1142,7 @@ function TeamView({ state, setState, showToast }: any) {
         <div key={member.id} className="bg-[#1e293b]/50 backdrop-blur-sm border border-slate-800 p-8 rounded-3xl relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 rounded-bl-full -mr-12 -mt-12 transition-all group-hover:w-32 group-hover:h-32" />
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-violet-500/20 border border-indigo-500/20 flex items-center justify-center text-indigo-400 font-display font-black text-2xl mb-6">
-            {member.name[0]}
+            {member.name ? member.name[0] : "T"}
           </div>
           <h3 className="text-xl font-bold text-white mb-1">{member.name}</h3>
           <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-500 mb-6">{member.role}</p>
