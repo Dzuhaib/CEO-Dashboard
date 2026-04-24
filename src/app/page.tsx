@@ -230,6 +230,11 @@ export default function AgencyDashboard() {
         content: contentRes.data || [],
         activity: activityRes.data || []
       }));
+
+      // Trigger daily task generation check after data is loaded
+      if (tasksRes.data) {
+        await checkTasks(userId, tasksRes.data);
+      }
     } catch (error) {
       console.error("Data fetch error:", error);
     } finally {
@@ -252,6 +257,26 @@ export default function AgencyDashboard() {
     const { data } = await supabase.from('activity').insert([log]).select().single();
     if (data) {
       setState(prev => ({ ...prev, activity: [data, ...prev.activity].slice(0, 50) }));
+    }
+  };
+
+  const checkTasks = async (userId: string, currentTasks: Task[]) => {
+    const today = getPKTDate();
+    const todayTasks = currentTasks.filter(t => t.date === today);
+    
+    if (todayTasks.length === 0) {
+      const defaults = [
+        { user_id: userId, title: "Send 15 cold emails", assignee: "Outreach Manager" as TeamRole, done: false, date: today },
+        { user_id: userId, title: "Send 15 cold DMs for LinkedIn", assignee: "Outreach Manager" as TeamRole, done: false, date: today },
+        { user_id: userId, title: "Find 15 email leads for next time", assignee: "CEO" as TeamRole, done: false, date: today },
+        { user_id: userId, title: "Post 1 LinkedIn piece", assignee: "Content" as TeamRole, done: false, date: today },
+        { user_id: userId, title: "Review pipeline", assignee: "CEO" as TeamRole, done: false, date: today }
+      ];
+      const { data, error } = await supabase.from('tasks').insert(defaults).select();
+      if (!error && data) {
+        setState(prev => ({ ...prev, tasks: [...data, ...prev.tasks] }));
+        addActivity("Daily outreach tasks generated", "system");
+      }
     }
   };
 
@@ -393,6 +418,20 @@ function DashboardView({ state, setState, setActiveTab }: { state: AppState, set
     ];
   }, [state]);
 
+  const pieData = useMemo(() => {
+    const counts: Record<string, number> = {};
+    state.leads.forEach(l => {
+      counts[l.platform] = (counts[l.platform] || 0) + 1;
+    });
+    const data = Object.entries(counts).map(([name, value]) => ({ name, value }));
+    return data.length > 0 ? data : [
+      { name: "LinkedIn", value: 0 },
+      { name: "Upwork", value: 0 },
+      { name: "Cold Email", value: 0 },
+      { name: "Other", value: 0 },
+    ];
+  }, [state.leads]);
+
   const chartData = [
     { name: "Mon", sent: 8, replied: 1 },
     { name: "Tue", sent: 15, replied: 2 },
@@ -403,30 +442,32 @@ function DashboardView({ state, setState, setActiveTab }: { state: AppState, set
     { name: "Sun", sent: 3, replied: 0 },
   ];
 
+  const COLORS = ["#6366f1", "#8b5cf6", "#ec4899", "#f43f5e", "#f59e0b", "#10b981"];
+
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {/* Stat Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
-        {stats.map((stat) => (
-          <div key={stat.label} className="bg-[#1e293b]/50 backdrop-blur-sm border border-slate-800 p-5 rounded-2xl hover:border-indigo-500/30 hover:bg-slate-800/50 transition-all group shadow-xl">
-            <div className="flex justify-between items-start mb-3">
-              <div className={`p-2 rounded-xl ${stat.bg}`}>
-                <stat.icon className={stat.color} size={20} />
-              </div>
-              <ArrowUpRight className="text-slate-600 group-hover:text-slate-400 transition-colors" size={16} />
-            </div>
-            <p className="text-2xl font-bold text-white">{stat.value}</p>
-            <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mt-1">{stat.label}</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {stats.map((stat, idx) => (
+          <div key={idx} className="bg-[#1e293b]/50 backdrop-blur-sm border border-slate-800 p-6 rounded-3xl group hover:border-indigo-500/30 transition-all relative overflow-hidden">
+             <div className="flex justify-between items-start mb-4">
+                <div className={`p-3 rounded-2xl ${stat.bg} ${stat.color} transition-colors group-hover:bg-indigo-500 group-hover:text-white`}>
+                   <stat.icon size={24} />
+                </div>
+                <div className="text-right">
+                   <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">{stat.label}</p>
+                   <h3 className="text-2xl font-display font-black text-white">{stat.value}</h3>
+                </div>
+             </div>
           </div>
         ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Main Chart */}
-        <div className="lg:col-span-2 bg-[#1e293b]/50 backdrop-blur-sm border border-slate-800 p-6 rounded-3xl">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-bold text-white">Outreach Performance</h3>
-            <select className="bg-slate-900 border border-slate-800 text-slate-400 text-xs px-3 py-1.5 rounded-lg outline-none">
+        {/* Growth Chart */}
+        <div className="lg:col-span-2 bg-[#1e293b]/50 backdrop-blur-sm border border-slate-800 p-8 rounded-3xl">
+          <div className="flex justify-between items-center mb-8">
+            <h3 className="text-xl font-bold text-white">Outreach Performance</h3>
+            <select className="bg-slate-900 border border-slate-800 text-slate-400 text-xs rounded-lg px-3 py-1 outline-none">
               <option>Last 7 Days</option>
               <option>Last 30 Days</option>
             </select>
@@ -440,15 +481,14 @@ function DashboardView({ state, setState, setActiveTab }: { state: AppState, set
                     <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: "#0f172a", borderColor: "#334155", color: "#f1f5f9" }}
-                  itemStyle={{ color: "#818cf8" }}
+                  contentStyle={{ backgroundColor: "#0f172a", border: "1px solid #1e293b", borderRadius: "12px" }}
+                  itemStyle={{ color: "#fff" }}
                 />
-                <Area type="monotone" dataKey="sent" stroke="#6366f1" fillOpacity={1} fill="url(#colorSent)" strokeWidth={3} />
-                <Area type="monotone" dataKey="replied" stroke="#10b981" fill="transparent" strokeWidth={3} />
+                <Area type="monotone" dataKey="sent" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorSent)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -461,12 +501,7 @@ function DashboardView({ state, setState, setActiveTab }: { state: AppState, set
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={[
-                    { name: "LinkedIn", value: 45 },
-                    { name: "Upwork", value: 25 },
-                    { name: "Cold Email", value: 20 },
-                    { name: "Other", value: 10 },
-                  ]}
+                  data={pieData}
                   cx="50%"
                   cy="50%"
                   innerRadius={60}
@@ -474,24 +509,27 @@ function DashboardView({ state, setState, setActiveTab }: { state: AppState, set
                   paddingAngle={5}
                   dataKey="value"
                 >
-                  <Cell fill="#6366f1" />
-                  <Cell fill="#8b5cf6" />
-                  <Cell fill="#ec4899" />
-                  <Cell fill="#94a3b8" />
+                  {pieData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: "#0f172a", border: "1px solid #1e293b", borderRadius: "12px" }}
+                  itemStyle={{ color: "#fff" }}
+                />
               </PieChart>
             </ResponsiveContainer>
           </div>
-          <div className="grid grid-cols-2 gap-4 mt-2">
-             <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-indigo-500" />
-                <span className="text-xs text-slate-400">LinkedIn (45%)</span>
-             </div>
-             <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-violet-500" />
-                <span className="text-xs text-slate-400">Upwork (25%)</span>
-             </div>
+          <div className="mt-6 space-y-3">
+            {pieData.map((entry, index) => (
+              <div key={entry.name} className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
+                  <span className="text-xs text-slate-400">{entry.name}</span>
+                </div>
+                <span className="text-xs font-bold text-white">{entry.value}</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -781,34 +819,6 @@ function TasksView({ state, setState, showToast, addActivity, user }: any) {
   // Use Pakistani Timezone (UTC+5)
   const today = new Date(new Date().getTime() + 5 * 60 * 60 * 1000).toISOString().split('T')[0];
   
-  useEffect(() => {
-    if (!user) return;
-    const checkTasks = async () => {
-      // Check database directly instead of local state to avoid race conditions
-      const { data: dbTasks } = await supabase
-        .from('tasks')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('date', today);
-
-      if (dbTasks && dbTasks.length === 0) {
-        const defaults = [
-          { user_id: user.id, title: "Send 15 cold emails", assignee: "Outreach", done: false, date: today },
-          { user_id: user.id, title: "Send 15 cold DMs for LinkedIn", assignee: "Outreach", done: false, date: today },
-          { user_id: user.id, title: "Find 15 email leads for next time", assignee: "CEO", done: false, date: today },
-          { user_id: user.id, title: "Post 1 LinkedIn piece", assignee: "Content", done: false, date: today },
-          { user_id: user.id, title: "Review pipeline", assignee: "CEO", done: false, date: today }
-        ];
-        const { data, error } = await supabase.from('tasks').insert(defaults).select();
-        if (!error && data) {
-          setState((prev: AppState) => ({ ...prev, tasks: [...data, ...prev.tasks] }));
-          addActivity("Daily outreach tasks generated", "system");
-        }
-      }
-    };
-    checkTasks();
-  }, [user]);
-
   const toggleTask = async (id: string) => {
     const task = state.tasks.find((t: Task) => t.id === id);
     if (!task) return;
