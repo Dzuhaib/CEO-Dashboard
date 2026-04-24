@@ -186,23 +186,15 @@ export default function AgencyDashboard() {
 
   // Auth Listener
   useEffect(() => {
-    console.log("Initializing Auth Listener...");
-    console.log("Current URL:", window.location.href);
-    console.log("Supabase URL Configured:", !!process.env.NEXT_PUBLIC_SUPABASE_URL);
-    console.log("Supabase Key Configured:", !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-    
     supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log("Initial Session Check:", session ? "Session Found" : "No Session");
       setUser(session?.user ?? null);
       if (session?.user) fetchData(session.user.id);
       else setLoading(false);
-    }).catch(err => {
-      console.error("GetSession Error:", err);
+    }).catch(() => {
       setLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("Auth State Changed:", event, session ? "Session Found" : "No Session");
       setUser(session?.user ?? null);
       if (session?.user) fetchData(session.user.id);
       else {
