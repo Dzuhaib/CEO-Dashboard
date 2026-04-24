@@ -13,8 +13,8 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: "Agency CEO Dashboard",
-  description: "Internal tool for lead acquisition and agency management",
+  title: "AI VIZED | Executive Dashboard",
+  description: "Advanced performance infrastructure for high-growth agencies.",
 };
 
 export default function RootLayout({

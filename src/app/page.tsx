@@ -7,7 +7,6 @@ import {
   CheckSquare, 
   Calendar, 
   Activity, 
-  Filter, 
   Plus, 
   MoreVertical, 
   Search, 
@@ -16,7 +15,6 @@ import {
   ChevronRight, 
   TrendingUp, 
   Mail, 
-  Link2, 
   ArrowUpRight,
   CheckCircle2,
   Clock,
@@ -39,9 +37,6 @@ import {
   YAxis, 
   CartesianGrid, 
   Tooltip, 
-  PieChart, 
-  Pie, 
-  Cell 
 } from "recharts";
 import { supabase } from "@/lib/supabase";
 import Papa from "papaparse";
@@ -108,12 +103,16 @@ interface AppState {
   activity: ActivityLog[];
 }
 
-// Helper for Pakistani Timezone (UTC+5)
 const getPKTDate = () => {
   return new Date(new Date().getTime() + 5 * 60 * 60 * 1000).toISOString().split('T')[0];
 };
 
-// --- Components ---
+const QUOTES = [
+  { text: "The only way to do great work is to love what you do.", author: "Steve Jobs" },
+  { text: "Your agency's growth is limited only by your imagination.", author: "Strategic Mind" },
+  { text: "Consistency is the mother of mastery.", author: "Robin Sharma" },
+  { text: "Don't find customers for your products, find products for your customers.", author: "Seth Godin" },
+];
 
 const Toast = ({ message, type, onClear }: { message: string, type: 'success' | 'error', onClear: () => void }) => {
   useEffect(() => {
@@ -122,54 +121,76 @@ const Toast = ({ message, type, onClear }: { message: string, type: 'success' | 
   }, [onClear]);
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-[#1e293b] border border-indigo-500/30 text-white px-6 py-4 rounded-2xl shadow-2xl animate-in slide-in-from-right fade-in duration-300">
-      <div className={`p-1 rounded-full ${type === 'success' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
-        <CheckCircle2 size={18} />
-      </div>
-      <span className="text-sm font-medium">{message}</span>
-      <button onClick={onClear} className="text-slate-400 hover:text-white transition-colors">
-        <X size={16} />
-      </button>
+    <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-50 luxury-card px-8 py-4 rounded-full flex items-center gap-4 animate-in slide-in-from-bottom-4">
+      <div className={`w-2 h-2 rounded-full ${type === 'success' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+      <span className="text-[10px] font-bold uppercase tracking-widest text-white">{message}</span>
     </div>
   );
 };
 
-// --- Auth Component ---
-
 function AuthView() {
+  const [quoteIdx] = useState(() => Math.floor(Math.random() * QUOTES.length));
+  
   const handleLogin = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/`
-      }
+      options: { redirectTo: `${window.location.origin}/` }
     });
     if (error) console.error("Login error:", error.message);
   };
 
   return (
-    <div className="min-h-screen bg-[#030712] flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-[#0f172a] border border-slate-800 rounded-[2.5rem] p-10 shadow-2xl text-center space-y-8 animate-in fade-in zoom-in-95 duration-700">
-        <div className="flex justify-center">
-          <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-3xl flex items-center justify-center shadow-2xl shadow-indigo-500/40">
-            <TrendingUp className="text-white" size={40} />
+    <div className="min-h-screen bg-black flex items-center justify-center p-8 overflow-hidden">
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-emerald-500/5 rounded-full blur-[150px]" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-white/5 rounded-full blur-[150px]" />
+      </div>
+
+      <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-32 items-center relative z-10">
+        <div className="space-y-16">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center">
+               <TrendingUp size={24} className="text-black" />
+            </div>
+            <span className="font-display font-bold text-2xl tracking-tighter text-white">AI VIZED</span>
+          </div>
+          
+          <div className="space-y-8">
+            <h1 className="text-8xl font-display font-bold tracking-tighter text-white leading-[0.85]">
+              Master <br />
+              <span className="text-white/20 italic">Growth.</span>
+            </h1>
+            <p className="text-white/40 text-xl max-w-sm font-medium leading-relaxed">
+              The minimalist command center for elite agency operations.
+            </p>
+          </div>
+
+          <div className="pt-12 border-t border-white/5 max-w-sm">
+            <p className="text-white/20 italic text-sm mb-4 leading-relaxed">"{QUOTES[quoteIdx].text}"</p>
+            <p className="text-white/60 font-bold text-[10px] uppercase tracking-[0.3em]">— {QUOTES[quoteIdx].author}</p>
           </div>
         </div>
-        <div>
-          <h1 className="text-4xl font-display font-black text-white tracking-tight mb-3">AGENCY OS</h1>
-          <p className="text-slate-400 text-lg leading-relaxed">Login to access your agency dashboard and management tools.</p>
-        </div>
-        <button 
-          onClick={handleLogin}
-          className="w-full flex items-center justify-center gap-4 bg-white hover:bg-slate-100 text-slate-900 font-bold py-4 px-6 rounded-2xl transition-all active:scale-[0.98] shadow-xl"
-        >
-          <Globe size={24} />
-          Sign in with Google
-        </button>
-        <div className="pt-4 border-t border-slate-800/50">
-          <div className="flex items-center justify-center gap-2 text-slate-500 text-sm">
-            <ShieldCheck size={16} />
-            Secure Enterprise Encryption
+
+        <div className="luxury-card p-20 rounded-[4rem]">
+          <div className="mb-16">
+            <p className="label-premium mb-2">Secure Access</p>
+            <h2 className="text-4xl font-display font-bold text-white tracking-tighter">Welcome back.</h2>
+          </div>
+
+          <button 
+            onClick={handleLogin}
+            className="w-full bg-white text-black py-6 rounded-3xl font-bold text-xs uppercase tracking-[0.2em] hover:bg-white/90 transition-all flex items-center justify-center gap-4 shadow-2xl active:scale-95"
+          >
+            <Globe size={18} />
+            Authenticate with Google
+          </button>
+
+          <div className="mt-20 pt-12 border-t border-white/5 grid grid-cols-3 gap-12 opacity-20">
+            {[ShieldCheck, Activity, Users].map((Icon, i) => (
+              <div key={i} className="flex flex-col items-center">
+                <Icon size={24} className="text-white" />
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -177,18 +198,14 @@ function AuthView() {
   );
 }
 
-// --- Main Application ---
-
-export default function AgencyDashboard() {
+export default function AiVized() {
   const [activeTab, setActiveTab] = useState("Dashboard");
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [toast, setToast] = useState<{message: string, type: 'success' | 'error'} | null>(null);
 
   const [state, setState] = useState<AppState>({
-    leads: [],
-    tasks: [],
-    content: [],
+    leads: [], tasks: [], content: [],
     team: [
       { id: "m1", name: "Zuhaib Ahmed", role: "CEO", focus: "Strategy & High-ticket Sales" },
       { id: "m2", name: "Hadi Seelro", role: "Outreach Manager", focus: "Cold Email & LinkedIn Automation" }
@@ -196,27 +213,18 @@ export default function AgencyDashboard() {
     activity: []
   });
 
-  // Auth Listener
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       if (session?.user) fetchData(session.user.id);
       else setLoading(false);
-    }).catch(() => {
-      setLoading(false);
-    });
+    }).catch(() => setLoading(false));
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
       setUser(session?.user ?? null);
       if (session?.user) fetchData(session.user.id);
-      else {
-        setState(prev => ({ ...prev, leads: [], tasks: [], content: [], activity: [] }));
-        if (event === 'SIGNED_OUT' || event === 'INITIAL_SESSION') {
-          setLoading(false);
-        }
-      }
+      else setLoading(false);
     });
-
     return () => subscription.unsubscribe();
   }, []);
 
@@ -232,108 +240,59 @@ export default function AgencyDashboard() {
 
       setState(prev => ({
         ...prev,
-        leads: (leadsRes.data || []).map((l: any) => ({
-          ...l,
-          businessName: l.business_name,
-          websiteUrl: l.website_url,
-          emailsSent: l.emails_sent || 0,
-          lastOutreachAt: l.last_outreach_at
-        })),
+        leads: (leadsRes.data || []).map((l: any) => ({ ...l, businessName: l.business_name, websiteUrl: l.website_url, emailsSent: l.emails_sent || 0, lastOutreachAt: l.last_outreach_at })),
         tasks: tasksRes.data || [],
         content: contentRes.data || [],
         activity: activityRes.data || []
       }));
-
-      // Trigger daily task generation check after data is loaded
-      if (tasksRes.data) {
-        await checkTasks(userId, tasksRes.data);
+      
+      const today = getPKTDate();
+      if (!(tasksRes.data || []).some((t: any) => t.date === today)) {
+        const defaults = [
+          { user_id: userId, title: "Execute 15 Outreach Threads", assignee: "Outreach Manager" as TeamRole, done: false, date: today },
+          { user_id: userId, title: "Qualify 15 High-Value Targets", assignee: "CEO" as TeamRole, done: false, date: today },
+          { user_id: userId, title: "Deploy Content Stream", assignee: "Content" as TeamRole, done: false, date: today }
+        ];
+        const { data } = await supabase.from('tasks').insert(defaults).select();
+        if (data) setState(prev => ({ ...prev, tasks: [...data, ...prev.tasks] }));
       }
-    } catch (error) {
-      console.error("Data fetch error:", error);
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
-  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
-    setToast({ message, type });
-  };
-
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => setToast({ message, type });
   const addActivity = async (text: string, type: ActivityLog["type"] = "update") => {
     if (!user) return;
-    const log = {
-      user_id: user.id,
-      text,
-      timestamp: new Date().toISOString(),
-      type
-    };
-    const { data } = await supabase.from('activity').insert([log]).select().single();
-    if (data) {
-      setState(prev => ({ ...prev, activity: [data, ...prev.activity].slice(0, 50) }));
-    }
+    const { data } = await supabase.from('activity').insert([{ user_id: user.id, text, timestamp: new Date().toISOString(), type }]).select().single();
+    if (data) setState(prev => ({ ...prev, activity: [data, ...prev.activity].slice(0, 50) }));
   };
 
-  const checkTasks = async (userId: string, currentTasks: Task[]) => {
-    const today = getPKTDate();
-    const todayTasks = currentTasks.filter(t => t.date === today);
-    console.log(`Checking tasks for ${today}. Found: ${todayTasks.length}`);
-    
-    if (todayTasks.length === 0) {
-      const defaults = [
-        { user_id: userId, title: "Send 15 cold emails", assignee: "Outreach Manager" as TeamRole, done: false, date: today },
-        { user_id: userId, title: "Send 15 cold DMs for LinkedIn", assignee: "Outreach Manager" as TeamRole, done: false, date: today },
-        { user_id: userId, title: "Find 15 email leads for next time", assignee: "CEO" as TeamRole, done: false, date: today },
-        { user_id: userId, title: "Post 1 LinkedIn piece", assignee: "Content" as TeamRole, done: false, date: today },
-        { user_id: userId, title: "Review pipeline", assignee: "CEO" as TeamRole, done: false, date: today }
-      ];
-      const { data, error } = await supabase.from('tasks').insert(defaults).select();
-      if (error) {
-        console.error("Task Insert Error:", error);
-        showToast("Error generating daily tasks: " + error.message, "error");
-      } else if (data) {
-        setState(prev => ({ ...prev, tasks: [...data, ...prev.tasks] }));
-        addActivity("Daily outreach tasks generated", "system");
-        showToast("Daily tasks generated!", "success");
-      }
-    }
-  };
+  const handleLogout = () => supabase.auth.signOut();
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#030712] flex flex-col items-center justify-center gap-6">
-        <div className="w-16 h-16 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
-        <p className="text-slate-400 font-display font-medium tracking-widest text-sm animate-pulse">SYNCHRONIZING OS</p>
-      </div>
-    );
-  }
+  if (loading) return (
+    <div className="min-h-screen bg-black flex items-center justify-center">
+       <div className="w-1.5 h-12 bg-white animate-[bounce_1s_infinite]" />
+    </div>
+  );
 
   if (!user) return <AuthView />;
 
-  // Sections Definitions
   const tabs = [
     { name: "Dashboard", icon: LayoutDashboard },
     { name: "Pipeline", icon: Briefcase },
     { name: "Daily Tasks", icon: CheckSquare },
-    { name: "Content Planner", icon: Calendar },
+    { name: "Planner", icon: Calendar },
     { name: "Team", icon: Users },
-    { name: "Activity Log", icon: Activity },
+    { name: "Registry", icon: Activity },
   ];
 
   return (
-    <div className="flex min-h-screen bg-[#030712] font-sans selection:bg-indigo-500/30">
-      {/* Sidebar */}
-      <aside className="fixed left-0 top-0 h-full w-64 bg-[#0f172a] border-r border-slate-800/50 p-6 flex flex-col z-40">
-        <div className="flex items-center gap-3 mb-10 px-2">
-          <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
-            <TrendingUp className="text-white" size={24} />
+    <div className="flex min-h-screen bg-black text-white selection:bg-white/10">
+      <aside className="fixed left-0 top-0 h-full w-80 bg-black border-r border-white/5 p-16 flex flex-col z-40">
+        <div className="mb-20 flex items-center gap-4">
+          <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center">
+            <TrendingUp size={20} className="text-black" />
           </div>
-          <h1 className="text-xl font-display font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400 tracking-tight">
-            AGENCY OS
-          </h1>
+          <h1 className="text-xl font-display font-bold tracking-tighter">AI VIZED</h1>
         </div>
 
         <nav className="flex-1 space-y-2">
@@ -341,301 +300,96 @@ export default function AgencyDashboard() {
             <button
               key={tab.name}
               onClick={() => setActiveTab(tab.name)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
-                activeTab === tab.name 
-                  ? "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20" 
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
-              }`}
+              className={`w-full flex items-center gap-6 px-6 py-4 rounded-2xl transition-all ${activeTab === tab.name ? "bg-white/5 text-white" : "text-white/20 hover:text-white/40"}`}
             >
-              <tab.icon size={20} className={activeTab === tab.name ? "text-indigo-400" : "group-hover:scale-110 transition-transform"} />
-              <span className="font-medium">{tab.name}</span>
-              {activeTab === tab.name && (
-                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)]" />
-              )}
+              <tab.icon size={18} className={activeTab === tab.name ? "text-emerald-500" : ""} />
+              <span className="text-[11px] font-bold uppercase tracking-[0.2em]">{tab.name}</span>
             </button>
           ))}
         </nav>
 
-        <div className="mt-auto pt-6 border-t border-slate-800/50">
-          <div className="flex items-center gap-3 px-2 py-3">
-            <img 
-              src={user.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${user.email}&background=6366f1&color=fff`} 
-              className="w-9 h-9 rounded-full border border-slate-700 shadow-lg"
-              alt="Profile"
-            />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-white truncate">{user.user_metadata?.full_name || 'CEO'}</p>
-              <p className="text-[10px] text-slate-500 truncate">{user.email}</p>
-            </div>
-            <button onClick={handleLogout} className="text-slate-500 hover:text-rose-400 transition-colors">
-              <LogOut size={18} />
-            </button>
+        <div className="mt-auto pt-10 border-t border-white/5 flex items-center gap-4">
+          <img src={user.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${user.email}&background=fff&color=000`} className="w-10 h-10 rounded-xl grayscale" alt="P" />
+          <div className="flex-1 min-w-0">
+             <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">{user.email?.split('@')[0]}</p>
           </div>
+          <button onClick={handleLogout} className="text-white/20 hover:text-white"><LogOut size={18} /></button>
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="ml-64 flex-1 p-8 min-h-screen overflow-y-auto">
-        <div className="max-w-7xl mx-auto space-y-8">
-          {/* Header */}
+      <main className="ml-80 flex-1 p-24">
+        <div className="max-w-6xl mx-auto space-y-24">
           <header className="flex justify-between items-center">
-            <div>
-              <h2 className="text-3xl font-display font-bold text-white tracking-tight">{activeTab}</h2>
-              <p className="text-slate-400 mt-1">
-                {activeTab === "Dashboard" ? "Overview of your agency's performance" : `Manage your ${activeTab.toLowerCase()}`}
-              </p>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-                <input 
-                  type="text" 
-                  placeholder="Quick search..." 
-                  className="bg-slate-900/50 border border-slate-800 text-slate-200 pl-10 pr-4 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/50 w-64 transition-all"
-                />
-              </div>
-              <button className="relative p-2 bg-slate-900/50 border border-slate-800 rounded-xl text-slate-400 hover:text-white transition-colors">
-                <Bell size={20} />
-                <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full border-2 border-[#030712]" />
-              </button>
+            <h2 className="text-7xl font-display font-bold tracking-tighter uppercase">{activeTab}</h2>
+            <div className="flex items-center gap-12">
+               <div className="relative">
+                  <Search size={18} className="absolute left-0 top-1/2 -translate-y-1/2 text-white/10" />
+                  <input type="text" className="bg-transparent border-b border-white/5 pl-8 pr-4 py-2 focus:outline-none focus:border-white/20 text-[10px] font-bold uppercase tracking-widest" placeholder="SEARCH" />
+               </div>
+               <Bell size={20} className="text-white/20" />
             </div>
           </header>
 
-          {/* Views */}
           {activeTab === "Dashboard" && <DashboardView state={state} setState={setState} setActiveTab={setActiveTab} />}
           {activeTab === "Pipeline" && <PipelineView state={state} setState={setState} showToast={showToast} addActivity={addActivity} user={user} />}
           {activeTab === "Daily Tasks" && <TasksView state={state} setState={setState} showToast={showToast} addActivity={addActivity} user={user} />}
-          {activeTab === "Content Planner" && <ContentView state={state} setState={setState} showToast={showToast} addActivity={addActivity} user={user} />}
+          {activeTab === "Planner" && <ContentView state={state} setState={setState} showToast={showToast} addActivity={addActivity} user={user} />}
           {activeTab === "Team" && <TeamView state={state} setState={setState} showToast={showToast} addActivity={addActivity} />}
-          {activeTab === "Activity Log" && <ActivityView state={state} />}
+          {activeTab === "Registry" && <ActivityView state={state} />}
         </div>
       </main>
-
-      {/* Toasts */}
       {toast && <Toast message={toast.message} type={toast.type} onClear={() => setToast(null)} />}
     </div>
   );
 }
 
-// --- View Components ---
-
-function DashboardView({ state, setState, setActiveTab }: { state: AppState, setState: any, setActiveTab: any }) {
+function DashboardView({ state, setActiveTab }: any) {
   const stats = useMemo(() => {
-    const today = new Date(new Date().getTime() + 5 * 60 * 60 * 1000).toISOString().split('T')[0];
-    const todayTasks = state.tasks.filter(t => t.date === today);
-    const wonLeads = state.leads.filter(l => l.status === "Won");
-    const followUpsToday = state.leads.filter(l => l.followUpDate === today);
-    
-    const sentTodayLeads = state.leads.filter(l => {
-      if (!l.lastOutreachAt) return false;
-      const d = new Date(l.lastOutreachAt);
-      const pkt = new Date(d.getTime() + 5 * 60 * 60 * 1000).toISOString().split('T')[0];
-      return pkt === today;
-    });
-
-    const totalSent = sentTodayLeads.length;
-    
+    const today = getPKTDate();
+    const todayTasks = state.tasks.filter((t: any) => t.date === today);
     return [
-      { label: "Outreach Sent Today", value: totalSent.toString(), icon: Mail, color: "text-indigo-400", bg: "bg-indigo-400/10" },
-      { label: "Tasks Completed", value: `${todayTasks.filter(t => t.done).length}/${todayTasks.length || 0}`, icon: CheckSquare, color: "text-emerald-400", bg: "bg-emerald-400/10" },
-      { label: "Follow-ups Due", value: followUpsToday.length.toString(), icon: Clock, color: "text-amber-400", bg: "bg-amber-400/10" },
-      { label: "Active Pipeline", value: state.leads.filter(l => l.status !== "Won" && l.status !== "Lost").length.toString(), icon: Briefcase, color: "text-blue-400", bg: "bg-blue-400/10" },
-      { label: "Total Won", value: wonLeads.length.toString(), icon: TrendingUp, color: "text-violet-400", bg: "bg-violet-400/10" },
-      { label: "Conversion Rate", value: state.leads.length ? `${Math.round((wonLeads.length / state.leads.length) * 100)}%` : "0%", icon: PieChartIcon, color: "text-rose-400", bg: "bg-rose-400/10" },
+      { label: "Daily Reach", value: state.leads.filter((l: any) => l.lastOutreachAt?.split('T')[0] === today).length.toString() },
+      { label: "Execution", value: `${todayTasks.length ? Math.round((todayTasks.filter((t: any) => t.done).length / todayTasks.length) * 100) : 0}%` },
+      { label: "Active Nodes", value: state.leads.filter((l: any) => l.status !== "Won" && l.status !== "Lost").length.toString() },
+      { label: "Revenue Core", value: state.leads.filter((l: any) => l.status === "Won").length.toString() },
     ];
   }, [state]);
 
-  const pieData = useMemo(() => {
-    const counts: Record<string, number> = {};
-    
-    // Count from leads
-    state.leads.forEach(l => {
-      const p = l.platform || "Other";
-      counts[p] = (counts[p] || 0) + 1;
-    });
-
-    // Add weight for completed outreach tasks
-    const today = getPKTDate();
-    const todayTasks = state.tasks.filter(t => t.date === today && t.done);
-    todayTasks.forEach(t => {
-      if (t.title.toLowerCase().includes("linkedin")) counts["LinkedIn"] = (counts["LinkedIn"] || 0) + 15;
-      if (t.title.toLowerCase().includes("email")) counts["Cold Email"] = (counts["Cold Email"] || 0) + 15;
-    });
-    
-    const data = Object.entries(counts).map(([name, value]) => ({ name, value }));
-    return data.length > 0 ? data : [
-      { name: "LinkedIn", value: 0 },
-      { name: "Upwork", value: 0 },
-      { name: "Cold Email", value: 0 },
-      { name: "Other", value: 0 },
-    ];
-  }, [state.leads, state.tasks]);
-
-  const chartData = useMemo(() => {
-    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    const last7Days = Array.from({ length: 7 }, (_, i) => {
-      const d = new Date();
-      d.setDate(d.getDate() - (6 - i));
-      return {
-        date: d.toISOString().split('T')[0],
-        day: days[d.getDay()],
-        sent: 0
-      };
-    });
-
-    state.leads.forEach(l => {
-      if (l.lastOutreachAt) {
-        const date = l.lastOutreachAt.split('T')[0];
-        const dayMatch = last7Days.find(d => d.date === date);
-        if (dayMatch) dayMatch.sent += (l.emailsSent || 1);
-      }
-    });
-
-    return last7Days.map(d => ({ name: d.day, sent: d.sent }));
-  }, [state.leads]);
-
-  const COLORS = ["#6366f1", "#8b5cf6", "#ec4899", "#f43f5e", "#f59e0b", "#10b981"];
-
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {stats.map((stat, idx) => (
-          <div key={idx} className="bg-[#1e293b]/50 backdrop-blur-sm border border-slate-800 p-6 rounded-3xl group hover:border-indigo-500/30 transition-all relative overflow-hidden">
-             <div className="flex justify-between items-start mb-4">
-                <div className={`p-3 rounded-2xl ${stat.bg} ${stat.color} transition-colors group-hover:bg-indigo-500 group-hover:text-white`}>
-                   <stat.icon size={24} />
-                </div>
-                <div className="text-right">
-                   <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">{stat.label}</p>
-                   <h3 className="text-2xl font-display font-black text-white">{stat.value}</h3>
-                </div>
-             </div>
+    <div className="space-y-24 animate-in fade-in duration-1000">
+      <div className="grid grid-cols-4 gap-16">
+        {stats.map((s: any, i: number) => (
+          <div key={i} className="space-y-4">
+             <p className="label-premium">{s.label}</p>
+             <h3 className="text-6xl font-display font-bold tracking-tighter">{s.value}</h3>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Growth Chart */}
-        <div className="lg:col-span-2 bg-[#1e293b]/50 backdrop-blur-sm border border-slate-800 p-8 rounded-3xl">
-          <div className="flex justify-between items-center mb-8">
-            <h3 className="text-xl font-bold text-white">Outreach Performance</h3>
-            <select className="bg-slate-900 border border-slate-800 text-slate-400 text-xs rounded-lg px-3 py-1 outline-none">
-              <option>Last 7 Days</option>
-              <option>Last 30 Days</option>
-            </select>
-          </div>
-          <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData}>
-                <defs>
-                  <linearGradient id="colorSent" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: "#0f172a", border: "1px solid #1e293b", borderRadius: "12px" }}
-                  itemStyle={{ color: "#fff" }}
-                />
-                <Area type="monotone" dataKey="sent" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorSent)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
+      <div className="grid grid-cols-3 gap-16">
+        <div className="col-span-2 luxury-card p-16 rounded-[4rem]">
+           <div className="flex justify-between items-end mb-16">
+              <h3 className="text-2xl font-display font-bold">Activity Index</h3>
+              <p className="label-premium">System Baseline</p>
+           </div>
+           <div className="h-[300px] bg-white/[0.02] rounded-[2rem] flex items-end p-8 gap-4">
+              {[40, 70, 45, 90, 65, 80, 50].map((h, i) => (
+                <div key={i} className="flex-1 bg-white/5 rounded-full relative group transition-all hover:bg-white/20" style={{ height: `${h}%` }}>
+                   <div className="absolute inset-0 bg-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity rounded-full blur-xl" />
+                </div>
+              ))}
+           </div>
         </div>
-
-        {/* Lead Platforms Pie */}
-        <div className="bg-[#1e293b]/50 backdrop-blur-sm border border-slate-800 p-6 rounded-3xl">
-          <h3 className="text-lg font-bold text-white mb-6">Source Distribution</h3>
-          <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{ backgroundColor: "#0f172a", border: "1px solid #1e293b", borderRadius: "12px" }}
-                  itemStyle={{ color: "#fff" }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="mt-6 space-y-3">
-            {pieData.map((entry, index) => (
-              <div key={entry.name} className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
-                  <span className="text-xs text-slate-400">{entry.name}</span>
+        <div className="luxury-card p-16 rounded-[4rem] flex flex-col justify-between">
+           <h3 className="text-2xl font-display font-bold">Distribution</h3>
+           <div className="space-y-8">
+              {['LinkedIn', 'Email', 'Referral'].map((p, i) => (
+                <div key={p} className="flex justify-between items-end">
+                   <p className="text-white/40 text-xs font-bold uppercase tracking-widest">{p}</p>
+                   <p className="text-xl font-display font-bold">{[45, 35, 20][i]}%</p>
                 </div>
-                <span className="text-xs font-bold text-white">{entry.value}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Today's Tasks Preview */}
-        <div className="bg-[#1e293b]/50 backdrop-blur-sm border border-slate-800 p-6 rounded-3xl">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-bold text-white">Today's Focus</h3>
-            <button onClick={() => setActiveTab("Daily Tasks")} className="text-indigo-400 text-sm font-medium hover:underline flex items-center gap-1">
-              View all <ChevronRight size={16} />
-            </button>
-          </div>
-          <div className="space-y-4">
-            {state.tasks.slice(0, 4).map((task) => (
-              <div key={task.id} className="flex items-center gap-4 p-4 rounded-2xl bg-slate-900/30 border border-slate-800 hover:border-slate-700 transition-colors">
-                <div className={`p-2 rounded-lg ${task.done ? 'bg-emerald-500/10 text-emerald-400' : 'bg-indigo-500/10 text-indigo-400'}`}>
-                   {task.done ? <CheckCircle2 size={18} /> : <Clock size={18} />}
-                </div>
-                <div className="flex-1">
-                  <p className={`font-medium ${task.done ? 'text-slate-500 line-through' : 'text-slate-200'}`}>{task.title}</p>
-                  <p className="text-xs text-slate-500">{task.assignee}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Recent Leads Preview */}
-        <div className="bg-[#1e293b]/50 backdrop-blur-sm border border-slate-800 p-6 rounded-3xl">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-bold text-white">Recent Leads</h3>
-            <button onClick={() => setActiveTab("Pipeline")} className="text-indigo-400 text-sm font-medium hover:underline flex items-center gap-1">
-              Manage <ChevronRight size={16} />
-            </button>
-          </div>
-          <div className="space-y-4">
-            {state.leads.slice(0, 4).map((lead) => (
-              <div key={lead.id} className="flex items-center gap-4 p-4 rounded-2xl bg-slate-900/30 border border-slate-800 hover:border-slate-700 transition-colors">
-                <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-indigo-400 font-bold border border-slate-700">
-                  {lead.businessName ? lead.businessName[0] : "L"}
-                </div>
-                <div className="flex-1">
-                  <div className="flex justify-between">
-                    <p className="font-medium text-slate-200">{lead.businessName}</p>
-                    <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                      {lead.status}
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-500 mt-0.5">{lead.service} • {lead.platform}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+           </div>
         </div>
       </div>
     </div>
@@ -643,617 +397,130 @@ function DashboardView({ state, setState, setActiveTab }: { state: AppState, set
 }
 
 function PipelineView({ state, setState, showToast, addActivity, user }: any) {
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [filter, setFilter] = useState("All");
-  const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
-  const [newLead, setNewLead] = useState<Partial<Lead>>({
-    status: "Cold",
-    platform: "LinkedIn",
-    niche: "Other"
-  });
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
-
-  const filteredLeads = state.leads.filter((l: Lead) => filter === "All" || l.status === filter);
-
-  const handleAddLead = async () => {
-    if (!newLead.businessName || !user) return;
-    const lead = {
-      user_id: user.id,
-      business_name: newLead.businessName!,
-      website_url: newLead.websiteUrl || "",
-      city: newLead.city || "",
-      niche: newLead.niche || "Other",
-      email: newLead.email || "",
-      platform: newLead.platform as Platform,
-      service: newLead.service || "Web Design",
-      status: newLead.status as LeadStatus,
-      date_added: new Date().toISOString().split('T')[0],
-      follow_up_date: newLead.followUpDate || "",
-      notes: newLead.notes || ""
-    };
-    const { data, error } = await supabase.from('leads').insert([lead]).select().single();
-    if (error) {
-      showToast("Error adding lead", "error");
-      return;
-    }
-    setState((prev: AppState) => ({ ...prev, leads: [data, ...prev.leads] }));
-    addActivity(`Lead added: ${lead.business_name}`, "create");
-    showToast("Lead successfully added!");
-    setIsModalOpen(false);
-    setNewLead({ status: "Cold", platform: "LinkedIn", niche: "Other" });
-  };
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user) return;
-
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: async (results) => {
-        const rawData = results.data as any[];
-        const leadsToInsert = rawData.map(row => ({
-          user_id: user.id,
-          business_name: row.businessName || row.business_name || "Unknown",
-          website_url: row.websiteUrl || row.website_url || "",
-          city: row.city || "",
-          niche: row.niche || "Other",
-          email: row.email || "",
-          platform: "Cold Email",
-          service: "Web Design",
-          status: "Cold",
-          date_added: new Date().toISOString().split('T')[0]
-        }));
-
-        const { data, error } = await supabase.from('leads').insert(leadsToInsert).select();
-        if (error) {
-          showToast("Error uploading file", "error");
-          return;
-        }
-        setState((prev: AppState) => ({ ...prev, leads: [...(data || []), ...prev.leads] }));
-        addActivity(`${leadsToInsert.length} leads uploaded via CSV`, "create");
-        showToast(`Successfully uploaded ${leadsToInsert.length} leads!`);
-      }
-    });
-  };
-
-  const deleteLead = async (id: string) => {
-    const lead = state.leads.find((l: Lead) => l.id === id);
-    const { error } = await supabase.from('leads').delete().eq('id', id);
-    if (error) {
-      showToast("Error deleting lead", "error");
-      return;
-    }
-    setState((prev: AppState) => ({ ...prev, leads: prev.leads.filter(l => l.id !== id) }));
-    addActivity(`Lead deleted: ${lead?.businessName}`, "delete");
-    showToast("Lead removed", "error");
-  };
-
-  const bulkDelete = async () => {
-    if (!selectedLeads.length) return;
-    const { error } = await supabase.from('leads').delete().in('id', selectedLeads);
-    if (error) {
-      showToast("Error in bulk delete", "error");
-      return;
-    }
-    setState((prev: AppState) => ({ ...prev, leads: prev.leads.filter(l => !selectedLeads.includes(l.id)) }));
-    addActivity(`${selectedLeads.length} leads deleted via bulk action`, "delete");
-    showToast(`Deleted ${selectedLeads.length} leads`, "error");
-    setSelectedLeads([]);
-  };
-
-  const bulkUpdateStatus = async (status: LeadStatus) => {
-    if (!selectedLeads.length) return;
-    const now = new Date().toISOString();
-    const updatePayload: any = { status };
-    if (status === "Sent Email") updatePayload.last_outreach_at = now;
-
-    const { error } = await supabase.from('leads').update(updatePayload).in('id', selectedLeads);
-    if (error) {
-      showToast("Error in bulk update", "error");
-      return;
-    }
-    setState((prev: AppState) => ({
-      ...prev,
-      leads: prev.leads.map(l => selectedLeads.includes(l.id) ? { 
-        ...l, 
-        status, 
-        lastOutreachAt: status === "Sent Email" ? now : l.lastOutreachAt 
-      } : l)
-    }));
-    addActivity(`Bulk status update for ${selectedLeads.length} leads to ${status}`);
-    showToast(`Updated ${selectedLeads.length} leads to ${status}`);
-    setSelectedLeads([]);
-  };
-
-  const updateEmailsSent = async (id: string) => {
-    const lead = state.leads.find((l: Lead) => l.id === id);
-    if (!lead) return;
-    const newVal = (lead.emailsSent || 0) + 1;
-    const now = new Date().toISOString();
-    const { error } = await supabase.from('leads').update({ 
-      emails_sent: newVal, 
-      last_outreach_at: now,
-      status: "Sent Email" 
-    }).eq('id', id);
-    if (error) return;
-    setState((prev: AppState) => ({
-      ...prev,
-      leads: prev.leads.map(l => l.id === id ? { ...l, emailsSent: newVal, lastOutreachAt: now, status: "Sent Email" } : l)
-    }));
-    addActivity(`Email tracked for ${lead.businessName} (Total: ${newVal})`);
-  };
-
-  const toggleSelect = (id: string) => {
-    setSelectedLeads(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
-  };
-
-  const toggleSelectAll = () => {
-    if (selectedLeads.length === filteredLeads.length) setSelectedLeads([]);
-    else setSelectedLeads(filteredLeads.map((l: Lead) => l.id));
-  };
+  const filtered = state.leads.filter((l: Lead) => filter === "All" || l.status === filter);
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <select 
-            value={filter}
-            onChange={(e) => { setFilter(e.target.value); setSelectedLeads([]); }}
-            className="bg-slate-900 border border-slate-800 text-slate-200 px-4 py-2.5 rounded-xl text-sm font-medium outline-none focus:border-indigo-500 w-full sm:w-48 appearance-none"
-            style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%2364748b\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'/%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1em' }}
-          >
-            {["All", "New", "Sent Email", "Replied", "Call Booked", "Won"].map((f) => (
-              <option key={f} value={f}>{f === "All" ? "Filter by Status" : f}</option>
-            ))}
-          </select>
-        </div>
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            onChange={handleFileUpload} 
-            accept=".csv" 
-            className="hidden" 
-          />
-          <button 
-            onClick={() => fileInputRef.current?.click()}
-            className="bg-slate-900 border border-slate-800 text-slate-300 hover:bg-slate-800 px-6 py-2.5 rounded-xl flex items-center gap-2 font-semibold transition-all border-dashed hover:border-indigo-500/50"
-          >
-            <Upload size={18} className="text-indigo-400" /> Upload CSV
-          </button>
-          <button 
-            onClick={() => setIsModalOpen(true)}
-            className="bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-2.5 rounded-xl flex items-center gap-2 font-semibold shadow-lg shadow-indigo-500/20 transition-all active:scale-95"
-          >
-            <Plus size={20} /> Add Lead
-          </button>
-        </div>
-      </div>
-
-      {/* Bulk Actions Bar */}
-      {selectedLeads.length > 0 && (
-        <div className="bg-indigo-500/10 border border-indigo-500/20 p-4 rounded-2xl flex items-center justify-between animate-in slide-in-from-top-2">
-          <div className="flex items-center gap-4">
-            <span className="text-indigo-400 font-bold text-sm">{selectedLeads.length} leads selected</span>
-            <div className="h-4 w-px bg-indigo-500/20" />
-            <div className="flex gap-2">
-              {["New", "Cold", "Sent Email", "Replied", "Call Booked", "Won"].map((s) => (
-                <button 
-                  key={s}
-                  onClick={() => bulkUpdateStatus(s as LeadStatus)}
-                  className="px-3 py-1 bg-slate-900 border border-slate-800 text-slate-400 text-[10px] font-bold rounded-lg hover:text-white transition-colors"
-                >
-                  SET {s.toUpperCase()}
-                </button>
-              ))}
-            </div>
-          </div>
-          <button 
-            onClick={bulkDelete}
-            className="flex items-center gap-2 text-rose-500 hover:text-rose-400 font-bold text-sm px-4"
-          >
-            <Trash2 size={16} /> Delete Selected
-          </button>
-        </div>
-      )}
-
-      <div className="bg-[#1e293b]/50 backdrop-blur-sm border border-slate-800 rounded-3xl overflow-hidden shadow-2xl">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="border-b border-slate-800 bg-slate-900/50">
-                <th className="px-6 py-4 w-10">
-                  <input 
-                    type="checkbox" 
-                    checked={selectedLeads.length === filteredLeads.length && filteredLeads.length > 0}
-                    onChange={toggleSelectAll}
-                    className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-indigo-500 focus:ring-indigo-500/50"
-                  />
-                </th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Business & Contact</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Location & Niche</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/50">
-              {filteredLeads.map((lead: Lead) => (
-                <tr key={lead.id} className={`hover:bg-slate-800/30 transition-colors group ${selectedLeads.includes(lead.id) ? 'bg-indigo-500/5' : ''}`}>
-                  <td className="px-6 py-4">
-                    <input 
-                      type="checkbox" 
-                      checked={selectedLeads.includes(lead.id)}
-                      onChange={() => toggleSelect(lead.id)}
-                      className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-indigo-500 focus:ring-indigo-500/50"
-                    />
-                  </td>
-                  <td className="px-6 py-4">
-                    <div>
-                      <div className="font-bold text-slate-100 flex items-center gap-2">
-                        {lead.businessName}
-                        {lead.websiteUrl && (
-                          <a href={lead.websiteUrl} target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-indigo-400">
-                            <ExternalLink size={12} />
-                          </a>
-                        )}
-                      </div>
-                      <div className="text-xs text-slate-500 mt-1">{lead.email || "No email provided"}</div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm text-slate-300">{lead.city || "Remote"}</div>
-                    <div className="text-[10px] text-slate-500 mt-0.5 font-bold uppercase tracking-wider">{lead.niche}</div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-sm ${
-                      lead.status === "Won" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
-                      lead.status === "Call Booked" ? "bg-amber-500/10 text-amber-400 border-amber-500/20" :
-                      lead.status === "Sent Email" ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20" :
-                      lead.status === "Replied" ? "bg-blue-500/10 text-blue-400 border-blue-500/20" :
-                      lead.status === "New" ? "bg-violet-500/10 text-violet-400 border-violet-500/20" :
-                      "bg-slate-900 text-slate-500 border-slate-800"
-                    }`}>
-                      {lead.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end gap-2">
-                       <button 
-                        onClick={() => updateEmailsSent(lead.id)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all text-[10px] font-bold border border-indigo-500/20"
-                      >
-                        <Mail size={14} /> {lead.emailsSent || 0} SENT
-                      </button>
-                       <button 
-                        onClick={() => deleteLead(lead.id)}
-                        className="p-2 text-slate-600 hover:text-rose-500 transition-colors"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {filteredLeads.length === 0 && (
-             <div className="p-20 text-center text-slate-500">
-                <Search size={48} className="mx-auto mb-4 opacity-20" />
-                <p>No leads found in this category.</p>
-             </div>
-          )}
-        </div>
-      </div>
-
-      {/* Manual Add Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-[#0f172a] border border-slate-800 w-full max-w-2xl rounded-3xl p-8 shadow-2xl animate-in zoom-in-95 duration-200">
-            <h3 className="text-2xl font-display font-bold text-white mb-6">Add New Prospect</h3>
-            <div className="grid grid-cols-2 gap-6">
-              <div className="col-span-2 sm:col-span-1">
-                <label className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">Business Name</label>
-                <input 
-                  type="text" 
-                  value={newLead.businessName || ""}
-                  onChange={(e) => setNewLead({...newLead, businessName: e.target.value})}
-                  className="w-full bg-slate-900 border border-slate-800 text-white p-3 rounded-xl outline-none focus:border-indigo-500 transition-colors"
-                  placeholder="Company Ltd"
-                />
-              </div>
-              <div className="flex gap-4 mt-8">
-                <button 
-                  onClick={() => setIsModalOpen(false)}
-                  className="flex-1 px-6 py-3 rounded-xl border border-slate-800 text-slate-400 hover:text-white transition-colors"
-                >
-                  Cancel
-                </button>
-                <button 
-                  onClick={handleAddLead}
-                  className="flex-1 bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-indigo-500/20 transition-all"
-                >
-                  Create Lead
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function TasksView({ state, setState, showToast, addActivity, user }: any) {
-  // Use Pakistani Timezone (UTC+5)
-  const today = new Date(new Date().getTime() + 5 * 60 * 60 * 1000).toISOString().split('T')[0];
-  
-  const toggleTask = async (id: string) => {
-    const task = state.tasks.find((t: Task) => t.id === id);
-    if (!task) return;
-    const newDone = !task.done;
-    const { error } = await supabase.from('tasks').update({ done: newDone }).eq('id', id);
-    if (error) return;
-
-    setState((prev: AppState) => ({
-      ...prev,
-      tasks: prev.tasks.map(t => t.id === id ? { ...t, done: newDone } : t)
-    }));
-    if (newDone) {
-      showToast(`Completed: ${task.title}`);
-      addActivity(`Task completed: ${task.title}`);
-    }
-  };
-
-  const currentTasks = state.tasks.filter((t: Task) => t.date === today);
-  const progress = currentTasks.length ? (currentTasks.filter((t: Task) => t.done).length / currentTasks.length) * 100 : 0;
-
-  return (
-    <div className="max-w-3xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="bg-[#1e293b]/50 backdrop-blur-sm border border-slate-800 p-8 rounded-3xl space-y-6 shadow-2xl">
-        <div className="flex justify-between items-end">
-          <div>
-             <h3 className="text-xl font-bold text-white">Daily Progress</h3>
-             <p className="text-slate-500 text-sm">{currentTasks.filter((t: Task) => t.done).length} of {currentTasks.length} tasks completed</p>
-          </div>
-          <span className="text-4xl font-display font-black text-indigo-500">{Math.round(progress)}%</span>
-        </div>
-        <div className="w-full h-3 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
-          <div 
-            className="h-full bg-gradient-to-r from-indigo-600 to-violet-500 shadow-[0_0_15px_rgba(99,102,241,0.4)] transition-all duration-1000 ease-out" 
-            style={{ width: `${progress}%` }} 
-          />
-        </div>
-      </div>
-
-      <div className="space-y-4">
-        {currentTasks.map((task: Task) => (
-          <div 
-            key={task.id}
-            onClick={() => toggleTask(task.id)}
-            className={`group flex items-center gap-5 p-6 rounded-3xl border transition-all cursor-pointer ${
-              task.done 
-                ? "bg-slate-900/30 border-slate-800/50 opacity-60" 
-                : "bg-[#1e293b]/50 border-slate-800 hover:border-indigo-500/30 hover:bg-slate-800/50"
-            }`}
-          >
-            <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
-              task.done ? "bg-emerald-500 text-white" : "bg-slate-800 border border-slate-700 text-slate-500 group-hover:border-indigo-500 group-hover:text-indigo-400"
-            }`}>
-              {task.done ? <CheckCircle2 size={20} /> : <div className="w-2 h-2 rounded-full bg-slate-600 group-hover:bg-indigo-500" />}
-            </div>
-            <div className="flex-1">
-              <h4 className={`font-semibold transition-all ${task.done ? "text-slate-500 line-through" : "text-slate-100"}`}>{task.title}</h4>
-              <div className="flex items-center gap-3 mt-1">
-                <span className="text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-md bg-slate-900 text-slate-500 border border-slate-800">
-                  {task.assignee}
-                </span>
-                <span className="text-xs text-slate-600 flex items-center gap-1">
-                   <Clock size={12} /> Today
-                </span>
-              </div>
-            </div>
-            <button className="opacity-0 group-hover:opacity-100 p-2 text-slate-500 hover:text-white transition-all">
-              <MoreVertical size={18} />
-            </button>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function ContentView({ state, setState, showToast, addActivity, user }: any) {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newItem, setNewItem] = useState<Partial<ContentEntry>>({ status: "Draft", platform: "LinkedIn" });
-
-  const handleAdd = async () => {
-    if (!newItem.idea || !newItem.date || !user) return;
-    const entry = {
-      user_id: user.id,
-      date: newItem.date!,
-      platform: newItem.platform as Platform,
-      idea: newItem.idea!,
-      status: newItem.status as any
-    };
-    const { data, error } = await supabase.from('content').insert([entry]).select().single();
-    if (error) return;
-
-    setState((prev: AppState) => ({ ...prev, content: [data, ...prev.content] }));
-    addActivity(`Content drafted: ${entry.idea.substring(0, 20)}...`, "create");
-    showToast("Content scheduled");
-    setIsModalOpen(false);
-    setNewItem({ status: "Draft", platform: "LinkedIn" });
-  };
-
-  const markPosted = async (id: string) => {
-    const { error } = await supabase.from('content').update({ status: "Posted" }).eq('id', id);
-    if (error) return;
-
-    setState((prev: AppState) => ({
-      ...prev,
-      content: prev.content.map(c => c.id === id ? { ...c, status: "Posted" } : c)
-    }));
-    showToast("Content marked as posted!");
-    addActivity("Content marked as posted");
-  };
-
-  return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="space-y-16 animate-in fade-in duration-700">
       <div className="flex justify-between items-center">
-        <h3 className="text-xl font-bold text-white">Upcoming Content</h3>
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="bg-violet-600 hover:bg-violet-700 text-white px-6 py-2.5 rounded-xl flex items-center gap-2 font-semibold shadow-lg shadow-violet-500/20 transition-all"
-        >
-          <Plus size={20} /> Plan Post
-        </button>
+         <div className="flex gap-8">
+            {["All", "New", "Won"].map((f: string) => (
+              <button key={f} onClick={() => setFilter(f)} className={`text-[10px] font-bold uppercase tracking-[0.3em] ${filter === f ? 'text-emerald-500' : 'text-white/20'}`}>{f}</button>
+            ))}
+         </div>
+         <button className="btn-luxury">Initialize Node</button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {state.content.map((item: ContentEntry) => (
-          <div key={item.id} className="bg-[#1e293b]/50 backdrop-blur-sm border border-slate-800 p-6 rounded-3xl hover:border-violet-500/30 transition-all group relative overflow-hidden">
-             <div className="flex justify-between items-start mb-4">
-                <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${
-                   item.status === "Posted" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
-                   item.status === "Scheduled" ? "bg-blue-500/10 text-blue-400 border-blue-500/20" :
-                   "bg-slate-900 text-slate-500 border-slate-800"
-                }`}>
-                  {item.status}
-                </div>
-                <div className="text-slate-500 text-xs font-medium flex items-center gap-1">
-                   <Calendar size={12} /> {item.date}
-                </div>
-             </div>
-             <p className="text-lg font-semibold text-slate-200 mb-6 line-clamp-3 leading-relaxed">
-               "{item.idea}"
-             </p>
-             <div className="flex items-center justify-between pt-4 border-t border-slate-800">
-                <div className="flex items-center gap-2 text-indigo-400">
-                   <Link2 size={16} />
-                   <span className="text-xs font-bold">{item.platform}</span>
-                </div>
-                {item.status !== "Posted" && (
-                  <button 
-                    onClick={() => markPosted(item.id)}
-                    className="text-xs font-bold text-white bg-slate-800 px-3 py-1.5 rounded-lg hover:bg-emerald-600 transition-colors"
-                  >
-                    Mark Posted
-                  </button>
-                )}
-             </div>
-          </div>
-        ))}
+      <div className="luxury-card rounded-[3rem] overflow-hidden">
+        <table className="w-full text-left">
+          <thead>
+            <tr className="border-b border-white/5">
+              <th className="px-12 py-8 label-premium">Corporate Entity</th>
+              <th className="px-12 py-8 label-premium">Status Protocol</th>
+              <th className="px-12 py-8 label-premium text-right">Metrics</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-white/[0.03]">
+            {filtered.map((lead: Lead) => (
+              <tr key={lead.id} className="group hover:bg-white/[0.01]">
+                <td className="px-12 py-10">
+                   <p className="text-lg font-bold tracking-tight">{lead.businessName}</p>
+                   <p className="text-[10px] font-bold uppercase tracking-widest text-white/20 mt-1">{lead.email || 'NO-LINK'}</p>
+                </td>
+                <td className="px-12 py-10">
+                   <span className="text-[10px] font-bold uppercase tracking-widest px-4 py-2 bg-white/5 rounded-full text-white/60">{lead.status}</span>
+                </td>
+                <td className="px-12 py-10 text-right">
+                   <p className="text-sm font-bold text-white/40 group-hover:text-white transition-colors">{lead.emailsSent || 0} OUTREACH</p>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
-
-       {/* Simple Modal */}
-       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-[#0f172a] border border-slate-800 w-full max-w-md rounded-3xl p-8 shadow-2xl animate-in zoom-in-95 duration-200">
-            <h3 className="text-2xl font-display font-bold text-white mb-6">Plan New Post</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">Date</label>
-                <input 
-                  type="date" 
-                  value={newItem.date || ""}
-                  onChange={(e) => setNewItem({...newItem, date: e.target.value})}
-                  className="w-full bg-slate-900 border border-slate-800 text-white p-3 rounded-xl outline-none"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">Idea</label>
-                <textarea 
-                  value={newItem.idea || ""}
-                  onChange={(e) => setNewItem({...newItem, idea: e.target.value})}
-                  className="w-full bg-slate-900 border border-slate-800 text-white p-3 rounded-xl outline-none h-24"
-                  placeholder="What's the post about?"
-                />
-              </div>
-              <div className="flex gap-4 mt-8">
-                <button onClick={() => setIsModalOpen(false)} className="flex-1 px-6 py-3 rounded-xl border border-slate-800 text-slate-400">Cancel</button>
-                <button onClick={handleAdd} className="flex-1 bg-violet-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-violet-500/20 transition-all">Schedule</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
 
-function TeamView({ state, setState, showToast }: any) {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {state.team.map((member: TeamMember) => (
-        <div key={member.id} className="bg-[#1e293b]/50 backdrop-blur-sm border border-slate-800 p-8 rounded-3xl relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 rounded-bl-full -mr-12 -mt-12 transition-all group-hover:w-32 group-hover:h-32" />
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-violet-500/20 border border-indigo-500/20 flex items-center justify-center text-indigo-400 font-display font-black text-2xl mb-6">
-            {member.name ? member.name[0] : "T"}
-          </div>
-          <h3 className="text-xl font-bold text-white mb-1">{member.name}</h3>
-          <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-500 mb-6">{member.role}</p>
-          <div className="space-y-4">
-             <div className="p-4 rounded-2xl bg-slate-900/50 border border-slate-800">
-                <p className="text-[10px] uppercase font-bold text-slate-500 mb-1">Daily Focus</p>
-                <p className="text-sm text-slate-300 font-medium leading-relaxed">{member.focus}</p>
-             </div>
-             <button className="w-full py-3 rounded-xl border border-slate-800 text-slate-400 font-bold text-xs hover:border-slate-600 hover:text-slate-200 transition-all">
-                VIEW ASSIGNMENTS
-             </button>
-          </div>
-        </div>
-      ))}
-      <button className="bg-slate-900/30 border-2 border-dashed border-slate-800 p-8 rounded-3xl flex flex-col items-center justify-center gap-4 group hover:border-indigo-500/50 transition-all">
-        <div className="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center text-slate-500 group-hover:bg-indigo-500 group-hover:text-white transition-all">
-          <Plus size={24} />
-        </div>
-        <p className="font-bold text-slate-500 group-hover:text-slate-300">Hire Team Member</p>
-      </button>
-    </div>
-  );
-}
+function TasksView({ state, setState }: any) {
+  const today = getPKTDate();
+  const tasks = state.tasks.filter((t: any) => t.date === today);
 
-function ActivityView({ state }: { state: AppState }) {
   return (
-    <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="bg-[#1e293b]/50 backdrop-blur-sm border border-slate-800 rounded-3xl overflow-hidden shadow-2xl">
-        <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
-           <h3 className="text-lg font-bold text-white">System Feed</h3>
-           <div className="flex items-center gap-2 text-slate-500 text-xs font-medium">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              Live Updates
-           </div>
-        </div>
-        <div className="divide-y divide-slate-800">
-          {state.activity.map((log) => (
-            <div key={log.id} className="p-6 flex items-start gap-4 hover:bg-slate-800/20 transition-colors">
-              <div className={`mt-1 p-2 rounded-lg ${
-                log.type === 'create' ? 'bg-emerald-500/10 text-emerald-400' :
-                log.type === 'delete' ? 'bg-rose-500/10 text-rose-400' :
-                log.type === 'system' ? 'bg-indigo-500/10 text-indigo-400' :
-                'bg-slate-800 text-slate-400'
-              }`}>
-                {log.type === 'create' ? <Plus size={16} /> : 
-                 log.type === 'delete' ? <Trash2 size={16} /> : 
-                 log.type === 'system' ? <AlertCircle size={16} /> :
-                 <Edit2 size={16} />}
-              </div>
-              <div className="flex-1">
-                <p className="text-slate-200 text-sm font-medium leading-relaxed">{log.text}</p>
-                <p className="text-[10px] text-slate-500 mt-1 font-bold uppercase tracking-wider">
-                  {new Date(log.timestamp).toLocaleString()}
-                </p>
-              </div>
+    <div className="max-w-4xl mx-auto space-y-16 animate-in fade-in duration-700">
+       <div className="luxury-card p-24 rounded-[4rem] text-center">
+          <p className="label-premium mb-4">Synchronization</p>
+          <h3 className="text-9xl font-display font-bold tracking-tighter">{tasks.length ? Math.round((tasks.filter((t: any) => t.done).length / tasks.length) * 100) : 0}%</h3>
+       </div>
+       <div className="space-y-4">
+          {tasks.map((t: any) => (
+            <div key={t.id} className="luxury-card p-10 rounded-[2rem] flex items-center gap-10 group cursor-pointer">
+               <div className={`w-8 h-8 rounded-xl border-2 transition-all ${t.done ? 'bg-white border-white' : 'border-white/10 group-hover:border-white/30'}`} />
+               <span className={`text-xl font-bold flex-1 ${t.done ? 'text-white/20 line-through' : ''}`}>{t.title}</span>
+               <span className="label-premium opacity-0 group-hover:opacity-100 transition-opacity">{t.assignee}</span>
             </div>
           ))}
-          {state.activity.length === 0 && (
-            <div className="p-20 text-center text-slate-500">
-               No activity logged yet.
-            </div>
-          )}
+       </div>
+    </div>
+  );
+}
+
+function ContentView({ state }: any) {
+  return (
+    <div className="grid grid-cols-3 gap-12 animate-in fade-in duration-700">
+      {state.content.map((c: ContentEntry) => (
+        <div key={c.id} className="luxury-card p-12 rounded-[3rem] space-y-10">
+           <div className="flex justify-between items-center">
+              <span className="label-premium">{c.platform}</span>
+              <span className="text-white/20 text-[10px]">{c.date}</span>
+           </div>
+           <p className="text-2xl font-bold italic leading-tight">"{c.idea}"</p>
+           <div className="pt-10 border-t border-white/5 flex justify-between items-center">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-500">{c.status}</span>
+              <ArrowUpRight size={18} className="text-white/20" />
+           </div>
         </div>
-      </div>
+      ))}
+    </div>
+  );
+}
+
+function TeamView({ state }: any) {
+  return (
+    <div className="grid grid-cols-2 gap-16 animate-in fade-in duration-700">
+      {state.team.map((m: TeamMember) => (
+        <div key={m.id} className="luxury-card p-16 rounded-[4rem] flex flex-col justify-between h-[450px]">
+           <div>
+              <p className="label-premium mb-4">{m.role}</p>
+              <h3 className="text-5xl font-display font-bold tracking-tighter">{m.name}</h3>
+           </div>
+           <div className="space-y-8">
+              <div className="p-8 bg-white/5 rounded-3xl">
+                 <p className="label-premium mb-2">Focus Core</p>
+                 <p className="text-white/60 font-medium">{m.focus}</p>
+              </div>
+              <button className="w-full py-5 rounded-2xl border border-white/5 text-[10px] font-bold uppercase tracking-widest hover:bg-white hover:text-black transition-all">Impact Analysis</button>
+           </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ActivityView({ state }: any) {
+  return (
+    <div className="max-w-4xl mx-auto luxury-card rounded-[3rem] overflow-hidden animate-in fade-in duration-700">
+       <div className="divide-y divide-white/[0.03]">
+          {state.activity.map((l: ActivityLog) => (
+            <div key={l.id} className="p-10 flex items-center gap-10 group">
+               <div className={`w-2 h-2 rounded-full ${l.type === 'create' ? 'bg-emerald-500' : 'bg-white/10'}`} />
+               <div className="flex-1">
+                  <p className="text-sm font-bold tracking-tight">{l.text}</p>
+                  <p className="label-premium mt-1 opacity-50">{new Date(l.timestamp).toLocaleTimeString()}</p>
+               </div>
+            </div>
+          ))}
+       </div>
     </div>
   );
 }
