@@ -35,6 +35,7 @@ body {
 
 .luxury-card::after {
   content: '';
+  pointer-events: none;
   @apply absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent opacity-0 transition-opacity duration-500;
 }
 
