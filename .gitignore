@@ -36,6 +36,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# nested Next.js app dir (has its own git repo — not tracked here)
+/app
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
