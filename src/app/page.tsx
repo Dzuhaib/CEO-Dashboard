@@ -73,12 +73,26 @@ const Toast = ({
 
 function AuthView() {
   const [quoteIdx] = useState(() => Math.floor(Math.random() * QUOTES.length));
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError]     = useState<string | null>(null);
+
   const handleLogin = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/` },
-    });
-    if (error) console.error("Login error:", error.message);
+    setAuthError(null);
+    setAuthLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: `${window.location.origin}/` },
+      });
+      if (error) {
+        setAuthError(error.message);
+        setAuthLoading(false);
+      }
+      // on success the browser redirects — no need to setLoading(false)
+    } catch (err: any) {
+      setAuthError(err?.message ?? "Unexpected error. Check console.");
+      setAuthLoading(false);
+    }
   };
 
   return (
@@ -129,11 +143,29 @@ function AuthView() {
 
           <button
             onClick={handleLogin}
-            className="w-full bg-white text-black py-5 md:py-6 rounded-3xl font-bold text-xs uppercase tracking-[0.2em] hover:bg-white/90 transition-all flex items-center justify-center gap-4 shadow-2xl active:scale-95"
+            disabled={authLoading}
+            className="w-full bg-white text-black py-5 md:py-6 rounded-3xl font-bold text-xs uppercase tracking-[0.2em] hover:bg-white/90 transition-all flex items-center justify-center gap-4 shadow-2xl active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100"
           >
-            <Globe size={18} />
-            Authenticate with Google
+            {authLoading ? (
+              <>
+                <span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                Redirecting…
+              </>
+            ) : (
+              <>
+                <Globe size={18} />
+                Authenticate with Google
+              </>
+            )}
           </button>
+
+          {authError && (
+            <div className="mt-6 px-5 py-4 rounded-2xl bg-rose-500/10 border border-rose-500/20">
+              <p className="text-rose-400 text-[10px] font-bold uppercase tracking-widest leading-relaxed">
+                {authError}
+              </p>
+            </div>
+          )}
 
           <div className="mt-12 md:mt-20 pt-8 md:pt-12 border-t border-white/5 grid grid-cols-3 gap-8 md:gap-12 opacity-20">
             {[ShieldCheck, Activity, Users].map((Icon, i) => (
